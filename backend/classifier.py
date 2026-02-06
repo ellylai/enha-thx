@@ -1,13 +1,13 @@
 import pandas as pd
 import torch
 import numpy as np
+import joblib
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.metrics import accuracy_score, classification_report
-from transformers import AutoTokenizer, AutoModel
 from typing import Tuple, List, Any
 from sklearn.inspection import permutation_importance
-from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test_split
+from sklearn.linear_model import LogisticRegression
 
 # Ensure we use GPU if available
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -47,19 +47,42 @@ def classification_task(
     return classifier, accuracy
 
 
-def demo_task(
-    classifier: LogisticRegression, testX: np.ndarray, test_metadata: pd.DataFrame
-) -> pd.DataFrame:
-    # 1. Flag cases predicted as noncompliant
-    predictions = classifier.predict(testX)
-    test_metadata["predicted_violation"] = predictions
-    flagged = test_metadata[test_metadata["predicted_violation"] == 1].copy()
+def train_classifier_pipeline():
+    # Load the embeddings generated in the previous step
+    # (Assuming they were saved as positive_embeddings.npy and negative_embeddings.npy)
+    pos_X = np.load("pos_refined_weak_labels_embeddings.npy")
+    neg_X = np.load("neg_refined_weak_labels_embeddings.npy")
 
-    print(f"Identified {len(flagged)} potentially noncompliant cases.")
+    # Create labels: 1 for positive (noncompliant), 0 for negative (compliant)
+    pos_y = np.ones(pos_X.shape[0])
+    neg_y = np.zeros(neg_X.shape[0])
 
-    # 2. Example structure for LLM integration
-    # For each flagged case, you would pass 'text_descriptions' to an LLM
-    # to summarize specific order violations found in the docket.
+    # Combine into master feature matrix and target vector
+    X = np.vstack((pos_X, neg_X))
+    y = np.concatenate((pos_y, neg_y))
 
-    return flagged
+    # --- Pipeline Execution ---
 
+    # 1. Split the data
+    trainX, testX, trainY, testY = split_samples(X, y)
+
+    # 2. Train and Evaluate
+    classifier, accuracy = classification_task(trainX, trainY, testX, testY)
+
+    print(f"\nFinal Test Accuracy: {accuracy:.4f}")
+
+    # Assume 'classifier' is your trained LogisticRegression object
+    model_filename = "noncompliance_classifier_v1.pkl"
+
+    # Save the complete package
+    joblib.dump(classifier, model_filename)
+
+    print(f"Model successfully packaged and saved to {model_filename}")
+
+    # 3. Demo (Assuming you have a metadata dataframe for the test set)
+    # test_indices = labels for the 20% held-out data
+    # demo_results = demo_task(classifier, testX, test_metadata)
+
+
+if __name__ == "__main__":
+    train_classifier_pipeline()
