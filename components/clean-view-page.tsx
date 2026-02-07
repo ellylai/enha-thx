@@ -1,14 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   analyzeCase,
   fetchCases,
   generateSummary,
   saveDocketForProcessing,
 } from "@/lib/api-client";
-import type { CaseFilters, CourtCase, ExtractedFeaturesPayload } from "@/lib/types";
+import type {
+  CaseFilters,
+  CourtCase,
+  ExtractedFeaturesPayload,
+} from "@/lib/types";
 
 const defaultFilters: CaseFilters = {
   q: "",
@@ -61,12 +65,15 @@ function StepCard({ step, title, description, children }: StepCardProps) {
 export default function CleanViewPage() {
   const [stage, setStage] = useState<Stage>("intro");
   const [filters, setFilters] = useState<CaseFilters>(defaultFilters);
-  const [searchFilters, setSearchFilters] = useState<CaseFilters>(defaultFilters);
+  const [searchFilters, setSearchFilters] =
+    useState<CaseFilters>(defaultFilters);
   const [manualCaseId, setManualCaseId] = useState<string | null>(null);
   const [selectedDocketId, setSelectedDocketId] = useState<number | null>(null);
   const [isCaseConfirmed, setIsCaseConfirmed] = useState(false);
   const [confirmedCaseId, setConfirmedCaseId] = useState<string | null>(null);
-  const [confirmedDocketId, setConfirmedDocketId] = useState<number | null>(null);
+  const [confirmedDocketId, setConfirmedDocketId] = useState<number | null>(
+    null,
+  );
   const [confirmedExtractedData, setConfirmedExtractedData] =
     useState<ExtractedFeaturesPayload | null>(null);
   const [promptHint, setPromptHint] = useState(
@@ -75,6 +82,8 @@ export default function CleanViewPage() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showSearchHelp, setShowSearchHelp] = useState(false);
   const [isSearchSubmitting, setIsSearchSubmitting] = useState(false);
+
+  const queryClient = useQueryClient();
 
   const casesQuery = useQuery({
     queryKey: ["courtlistener-cases", searchFilters],
@@ -90,7 +99,9 @@ export default function CleanViewPage() {
 
   const analysisMutation = useMutation({
     mutationFn: (
-      input: string | { docketId: string; extractedData?: ExtractedFeaturesPayload },
+      input:
+        | string
+        | { docketId: string; extractedData?: ExtractedFeaturesPayload },
     ) =>
       typeof input === "string"
         ? analyzeCase(input)
@@ -111,15 +122,18 @@ export default function CleanViewPage() {
     return results.find((item) => item.id === manualCaseId) ?? null;
   }, [manualCaseId, casesQuery.data?.results]);
 
-  function onFilterChange<K extends keyof CaseFilters>(key: K, value: CaseFilters[K]) {
+  function onFilterChange<K extends keyof CaseFilters>(
+    key: K,
+    value: CaseFilters[K],
+  ) {
     setFilters((prev) => ({ ...prev, [key]: value }));
   }
 
   async function handleSearch() {
     if (isSearchBusy) return;
 
-    setIsSearchSubmitting(true);
-    setSearchFilters({ ...filters });
+    const filtersToUse = { ...filters };
+    setSearchFilters(filtersToUse);
     setStage("select");
     setManualCaseId(null);
     setSelectedDocketId(null);
@@ -130,8 +144,12 @@ export default function CleanViewPage() {
     summaryMutation.reset();
     analysisMutation.reset();
 
+    setIsSearchSubmitting(true);
     try {
-      await casesQuery.refetch();
+      await queryClient.fetchQuery({
+        queryKey: ["courtlistener-cases", filtersToUse],
+        queryFn: () => fetchCases(filtersToUse),
+      });
     } finally {
       setIsSearchSubmitting(false);
     }
@@ -196,7 +214,9 @@ export default function CleanViewPage() {
     }
   }
 
-  async function printConfirmedDocketIdToTerminal(docketId: number): Promise<void> {
+  async function printConfirmedDocketIdToTerminal(
+    docketId: number,
+  ): Promise<void> {
     await fetch("/api/debug-docket", {
       method: "POST",
       headers: {
@@ -247,7 +267,10 @@ export default function CleanViewPage() {
         </div>
       </header>
 
-      <main id="main-content" className="mx-auto flex max-w-6xl flex-col gap-10 px-6 py-10">
+      <main
+        id="main-content"
+        className="mx-auto flex max-w-6xl flex-col gap-10 px-6 py-10"
+      >
         {stage === "intro" ? (
           <>
             <section className="border-t-2 border-[var(--line)] pt-8">
@@ -258,9 +281,10 @@ export default function CleanViewPage() {
                 Start with a case. End with a clear, risk-aware brief.
               </h2>
               <p className="mt-6 max-w-3xl text-sm leading-7 text-[var(--ink-soft)]">
-                This workflow helps your team find federal dockets in CourtListener,
-                confirm the right case, pass the docket ID to backend workflows, and
-                generate a plain-English summary with risk signals.
+                This workflow helps your team find federal dockets in
+                CourtListener, confirm the right case, pass the docket ID to
+                backend workflows, and generate a plain-English summary with
+                risk signals.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <button
@@ -308,7 +332,8 @@ export default function CleanViewPage() {
                   Confirm docket
                 </h3>
                 <p className="mt-2 text-sm text-[var(--ink-soft)]">
-                  Select one case and confirm the docket ID before downstream actions.
+                  Select one case and confirm the docket ID before downstream
+                  actions.
                 </p>
               </article>
 
@@ -320,7 +345,8 @@ export default function CleanViewPage() {
                   Generate summary
                 </h3>
                 <p className="mt-2 text-sm text-[var(--ink-soft)]">
-                  Produce a plain-English brief with risk-aware context for review.
+                  Produce a plain-English brief with risk-aware context for
+                  review.
                 </p>
               </article>
             </section>
@@ -344,7 +370,10 @@ export default function CleanViewPage() {
                 <div className="flex flex-col gap-3 sm:flex-row">
                   <div className="flex-1">
                     <div className="mb-1.5 flex items-center gap-2">
-                      <label htmlFor="query" className="block text-sm font-medium text-[var(--ink)]">
+                      <label
+                        htmlFor="query"
+                        className="block text-sm font-medium text-[var(--ink)]"
+                      >
                         Search filings
                       </label>
                       <div className="relative">
@@ -359,17 +388,32 @@ export default function CleanViewPage() {
                         </button>
                         {showSearchHelp ? (
                           <div className="absolute left-0 z-20 mt-2 w-80 rounded-xl border border-[var(--line)] bg-white p-3 text-xs text-[var(--ink-soft)] shadow-[var(--card-shadow)]">
-                            <p className="font-semibold text-[var(--ink)]">How to search well</p>
+                            <p className="font-semibold text-[var(--ink)]">
+                              How to search well
+                            </p>
                             <p className="mt-1">
-                              Use plain phrases from filings, then narrow with filters if needed.
+                              Use plain phrases from filings, then narrow with
+                              filters if needed.
                             </p>
                             <p className="mt-2">
-                              Examples: <span className="font-medium">order to show cause</span>,{" "}
-                              <span className="font-medium">motion for sanctions</span>,{" "}
-                              <span className="font-medium">failure to comply</span>,{" "}
-                              <span className="font-medium">contempt</span>.
+                              Examples:{" "}
+                              <span className="font-medium">
+                                order to show cause
+                              </span>
+                              ,{" "}
+                              <span className="font-medium">
+                                motion for sanctions
+                              </span>
+                              ,{" "}
+                              <span className="font-medium">
+                                failure to comply
+                              </span>
+                              , <span className="font-medium">contempt</span>.
                             </p>
-                            <p className="mt-2">Tip: Start broad, confirm one case, then continue to summary.</p>
+                            <p className="mt-2">
+                              Tip: Start broad, confirm one case, then continue
+                              to summary.
+                            </p>
                           </div>
                         ) : null}
                       </div>
@@ -379,7 +423,9 @@ export default function CleanViewPage() {
                       id="query"
                       name="query"
                       value={filters.q}
-                      onChange={(event) => onFilterChange("q", event.target.value)}
+                      onChange={(event) =>
+                        onFilterChange("q", event.target.value)
+                      }
                       disabled={isSearchBusy}
                       className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2.5 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
                       placeholder="e.g. order to show cause"
@@ -392,7 +438,9 @@ export default function CleanViewPage() {
                       disabled={isSearchBusy}
                       className="w-full rounded-lg bg-[var(--ink)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--ink-soft)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                     >
-                      {isSearchBusy ? "Searching court records..." : "Search cases"}
+                      {isSearchBusy
+                        ? "Searching court records..."
+                        : "Search cases"}
                     </button>
                   </div>
                 </div>
@@ -424,7 +472,9 @@ export default function CleanViewPage() {
                         id="court"
                         name="court"
                         value={filters.court}
-                        onChange={(event) => onFilterChange("court", event.target.value)}
+                        onChange={(event) =>
+                          onFilterChange("court", event.target.value)
+                        }
                         disabled={isSearchBusy}
                         className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
                         placeholder="e.g. ca9, dmn"
@@ -442,7 +492,9 @@ export default function CleanViewPage() {
                         id="docket-number"
                         name="docket-number"
                         value={filters.docketNumber}
-                        onChange={(event) => onFilterChange("docketNumber", event.target.value)}
+                        onChange={(event) =>
+                          onFilterChange("docketNumber", event.target.value)
+                        }
                         disabled={isSearchBusy}
                         className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
                         placeholder="e.g. 1:25-cv-00123"
@@ -460,7 +512,9 @@ export default function CleanViewPage() {
                         id="nature-of-suit"
                         name="nature-of-suit"
                         value={filters.natureOfSuit}
-                        onChange={(event) => onFilterChange("natureOfSuit", event.target.value)}
+                        onChange={(event) =>
+                          onFilterChange("natureOfSuit", event.target.value)
+                        }
                         disabled={isSearchBusy}
                         className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
                         placeholder="e.g. 463 (habeas corpus)"
@@ -480,7 +534,9 @@ export default function CleanViewPage() {
                           name="filed-after"
                           type="date"
                           value={filters.dateFiledAfter}
-                          onChange={(event) => onFilterChange("dateFiledAfter", event.target.value)}
+                          onChange={(event) =>
+                            onFilterChange("dateFiledAfter", event.target.value)
+                          }
                           disabled={isSearchBusy}
                           className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
                         />
@@ -498,7 +554,12 @@ export default function CleanViewPage() {
                           name="filed-before"
                           type="date"
                           value={filters.dateFiledBefore}
-                          onChange={(event) => onFilterChange("dateFiledBefore", event.target.value)}
+                          onChange={(event) =>
+                            onFilterChange(
+                              "dateFiledBefore",
+                              event.target.value,
+                            )
+                          }
                           disabled={isSearchBusy}
                           className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
                         />
@@ -536,12 +597,16 @@ export default function CleanViewPage() {
                         aria-hidden="true"
                       />
                       <div>
-                        <p className="text-sm font-semibold text-[var(--ink)]">Search in progress</p>
+                        <p className="text-sm font-semibold text-[var(--ink)]">
+                          Search in progress
+                        </p>
                         <p className="mt-1 text-sm text-[var(--ink-soft)]">
-                          We are querying CourtListener and preparing a ranked case list for review.
+                          We are querying CourtListener and preparing a ranked
+                          case list for review.
                         </p>
                         <p className="mt-2 text-xs text-[var(--ink-muted)]">
-                          Next: results will appear below, then select one case to continue.
+                          Next: results will appear below, then select one case
+                          to continue.
                         </p>
                       </div>
                     </div>
@@ -550,7 +615,10 @@ export default function CleanViewPage() {
 
                 <div className="rounded-xl border border-[var(--line)] bg-white">
                   <div className="border-b border-[var(--line)] px-4 py-3">
-                    <p className="text-sm text-[var(--ink-muted)]" aria-live="polite">
+                    <p
+                      className="text-sm text-[var(--ink-muted)]"
+                      aria-live="polite"
+                    >
                       {isSearchBusy
                         ? "Searching CourtListener..."
                         : casesQuery.data?.total
@@ -575,9 +643,12 @@ export default function CleanViewPage() {
                       </li>
                     ) : null}
 
-                    {hasSearched && !casesQuery.isFetching && !casesQuery.data?.results.length ? (
+                    {hasSearched &&
+                    !casesQuery.isFetching &&
+                    !casesQuery.data?.results.length ? (
                       <li className="px-4 py-8 text-center text-sm text-[var(--ink-muted)]">
-                        No matching cases found. Adjust search or open advanced filters.
+                        No matching cases found. Adjust search or open advanced
+                        filters.
                       </li>
                     ) : null}
 
@@ -604,8 +675,12 @@ export default function CleanViewPage() {
                             </p>
                             <p className="mt-1 text-xs text-[var(--ink-muted)]">
                               {item.court || "Unknown Court"}
-                              {item.docketNumber ? ` • Docket ${item.docketNumber}` : ""}
-                              {item.dateFiled ? ` • ${formatDate(item.dateFiled)}` : ""}
+                              {item.docketNumber
+                                ? ` • Docket ${item.docketNumber}`
+                                : ""}
+                              {item.dateFiled
+                                ? ` • ${formatDate(item.dateFiled)}`
+                                : ""}
                             </p>
                             <p className="mt-2 text-sm text-[var(--ink-soft)]">
                               {item.snippet || "No preview available."}
@@ -613,7 +688,9 @@ export default function CleanViewPage() {
                             <div className="mt-3">
                               <button
                                 type="button"
-                                onClick={() => handleSelectCase(item.id, item.docketId)}
+                                onClick={() =>
+                                  handleSelectCase(item.id, item.docketId)
+                                }
                                 aria-pressed={isSelected}
                                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[var(--accent-soft)] ${
                                   isSelected
@@ -716,7 +793,8 @@ export default function CleanViewPage() {
                           onClick={handleConfirmCaseSelection}
                           disabled={
                             selectedDocketId === null ||
-                            (isCaseConfirmed && confirmedCaseId === activeCase.id)
+                            (isCaseConfirmed &&
+                              confirmedCaseId === activeCase.id)
                           }
                           className="rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--ink-soft)] disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
                         >
@@ -732,16 +810,21 @@ export default function CleanViewPage() {
                         ) : null}
                       </div>
                     </article>
-                  ) : hasSearched && (casesQuery.data?.results?.length ?? 0) > 0 ? (
+                  ) : hasSearched &&
+                    (casesQuery.data?.results?.length ?? 0) > 0 ? (
                     <div className="rounded-xl border border-dashed border-[var(--line-strong)] bg-[var(--surface)] p-6 text-center text-sm text-[var(--ink-muted)]">
-                      Select one case from the list above to continue to summary.
+                      Select one case from the list above to continue to
+                      summary.
                     </div>
                   ) : null}
                 </div>
               </StepCard>
             ) : null}
 
-            {stage === "review" && activeCase && isCaseConfirmed && confirmedCaseId === activeCase.id ? (
+            {stage === "review" &&
+            activeCase &&
+            isCaseConfirmed &&
+            confirmedCaseId === activeCase.id ? (
               <StepCard
                 step="Step 3"
                 title="Read and summarize"
@@ -761,7 +844,8 @@ export default function CleanViewPage() {
                           className={`inline-block rounded-lg px-2.5 py-1 text-xs font-semibold ${
                             analysisMutation.data.weakLabel === "HIGH_RISK"
                               ? "bg-red-100 text-red-800"
-                              : analysisMutation.data.weakLabel === "MEDIUM_RISK"
+                              : analysisMutation.data.weakLabel ===
+                                  "MEDIUM_RISK"
                                 ? "bg-yellow-100 text-yellow-800"
                                 : "bg-green-100 text-green-800"
                           }`}
@@ -769,8 +853,11 @@ export default function CleanViewPage() {
                           {analysisMutation.data.weakLabel.replace("_", " ")}
                         </span>
                         <span className="text-sm text-[var(--ink-soft)]">
-                          Score: {(analysisMutation.data.noncomplianceScore * 100).toFixed(1)}% ·{" "}
-                          {analysisMutation.data.classifierSource}
+                          Score:{" "}
+                          {(
+                            analysisMutation.data.noncomplianceScore * 100
+                          ).toFixed(1)}
+                          % · {analysisMutation.data.classifierSource}
                         </span>
                       </div>
                     </section>
@@ -780,7 +867,10 @@ export default function CleanViewPage() {
                     aria-labelledby="filing-content"
                     className="rounded-xl border border-[var(--line)] bg-white p-4"
                   >
-                    <h4 id="filing-content" className="text-sm font-semibold text-[var(--ink)]">
+                    <h4
+                      id="filing-content"
+                      className="text-sm font-semibold text-[var(--ink)]"
+                    >
                       Filing text (cleaned)
                     </h4>
                     <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-[var(--ink-soft)]">
@@ -808,21 +898,31 @@ export default function CleanViewPage() {
 
                   <button
                     type="button"
-                    disabled={summaryMutation.isPending || analysisMutation.isPending}
+                    disabled={
+                      summaryMutation.isPending || analysisMutation.isPending
+                    }
                     onClick={() => {
-                      const baseCaseData: Parameters<typeof summaryMutation.mutate>[0]["caseData"] = {
+                      const baseCaseData: Parameters<
+                        typeof summaryMutation.mutate
+                      >[0]["caseData"] = {
                         ...activeCase,
-                        plainText: analysisMutation.data?.plainText ?? activeCase.plainText,
+                        plainText:
+                          analysisMutation.data?.plainText ??
+                          activeCase.plainText,
                         docketId: confirmedDocketId ?? undefined,
                         noncomplianceScore:
-                          analysisMutation.data?.noncomplianceScore ?? activeCase.noncomplianceScore,
-                        weakLabel: analysisMutation.data?.weakLabel ?? activeCase.weakLabel,
+                          analysisMutation.data?.noncomplianceScore ??
+                          activeCase.noncomplianceScore,
+                        weakLabel:
+                          analysisMutation.data?.weakLabel ??
+                          activeCase.weakLabel,
                       };
 
                       const caseData: any = { ...baseCaseData };
 
                       if (confirmedExtractedData) {
-                        caseData.case_metadata = confirmedExtractedData.case_metadata;
+                        caseData.case_metadata =
+                          confirmedExtractedData.case_metadata;
                         caseData.entries = confirmedExtractedData.entries;
                       }
 

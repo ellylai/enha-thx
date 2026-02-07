@@ -18,6 +18,24 @@ export async function GET(request: NextRequest) {
   const dateFiledAfter = searchParams.get("dateFiledAfter") ?? "";
   const dateFiledBefore = searchParams.get("dateFiledBefore") ?? "";
 
+  // Reject empty search: require at least one parameter
+  const hasAnyParam = !!(
+    q.trim() ||
+    court.trim() ||
+    docketNumber.trim() ||
+    natureOfSuit.trim() ||
+    dateFiledAfter.trim() ||
+    dateFiledBefore.trim()
+  );
+  if (!hasAnyParam) {
+    const emptyPayload: CasesResponse = {
+      results: [],
+      total: 0,
+      source: "live",
+    };
+    return NextResponse.json(emptyPayload);
+  }
+
   // CourtListener UI for docket-only search: type=r&docket_number=04722&order_by=score desc (q empty).
   // Use search endpoint with type=r and docket_number when user provides a docket number.
   const docketOnly = !!docketNumber.trim() && !q.trim();
