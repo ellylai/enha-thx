@@ -30,13 +30,16 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const upstream = await fetch(`${BASE_URL}dockets/?${params.toString()}`, {
+    const fullUrl = `${BASE_URL}dockets/?${params.toString()}`;
+
+    const upstream = await fetch(fullUrl, {
       method: "GET",
       headers,
       cache: "no-store",
     });
 
     if (!upstream.ok) {
+      const errorText = await upstream.text();
       throw new Error(
         `CourtListener request failed with status ${upstream.status}`,
       );
@@ -86,6 +89,7 @@ export async function GET(request: NextRequest) {
 
           if (classifierRes.ok) {
             const mlData = await classifierRes.json();
+
             if (mlData.status === "success" && mlData.results.length > 0) {
               mlResults = {
                 score: mlData.results[0].noncomplianceScore,
@@ -94,7 +98,7 @@ export async function GET(request: NextRequest) {
             }
           }
         } catch (err) {
-          console.error("Inference lookup failed", err);
+          console.error("ML classification failed:", err);
         }
 
         return {
@@ -119,8 +123,19 @@ export async function GET(request: NextRequest) {
       source: "live",
     };
 
+    console.log("\n=== FINAL API RESPONSE ===");
+    console.log("Processed results count:", results.length);
+    console.log("Total available:", payload.total);
+    console.log(
+      "Sample processed case:",
+      results[0] ? JSON.stringify(results[0], null, 2) : "No processed results",
+    );
+    console.log("=== END API CALL ===");
+
     return NextResponse.json(payload);
-  } catch {
+  } catch (error) {
+    console.log("API Error - using fallback data:", error);
+
     const fallbackPayload: CasesResponse = {
       results: fallbackCases,
       total: fallbackCases.length,
