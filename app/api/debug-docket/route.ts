@@ -5,13 +5,16 @@ function printConfirmedDocketIdToTerminal(docketId: number): void {
 }
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json().catch(() => null)) as
-    | { docketId?: number }
-    | null;
+  const body = (await request.json().catch(() => null)) as {
+    docketId?: number;
+  } | null;
 
   const docketId = body?.docketId;
   if (typeof docketId !== "number") {
-    return NextResponse.json({ error: "docketId is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "docketId is required" },
+      { status: 400 },
+    );
   }
 
   printConfirmedDocketIdToTerminal(docketId);

@@ -32,6 +32,19 @@ export async function POST(request: NextRequest) {
         entry_number?: string;
         pacer_sequence_number?: string;
       }>;
+      // Extracted_features format (from docket-details saved JSON)
+      case_metadata?: {
+        case_number?: string | null;
+        case_name?: string | null;
+        date_filed?: string | null;
+      };
+      entries?: Array<{
+        description?: string | null;
+        document_number?: string | null;
+        date_filed?: string | null;
+        entry_number?: number | null;
+        plain_text?: string | null;
+      }>;
       parties?: Array<{
         name: string;
         role: string;
@@ -53,60 +66,53 @@ export async function POST(request: NextRequest) {
   let userPrompt: string;
   let systemPrompt: string;
   
-  // Check if we have docket entries data in the Python backend format
+  // Check if we have docket entries data (Python-style or extracted_features format)
   const hasTextDescriptions = caseData.text_descriptions && caseData.text_descriptions.length > 0;
   const hasStructuredDocketEntries = caseData.docket_entries && caseData.docket_entries.length > 0;
-  const hasPythonStyleData = hasTextDescriptions || hasStructuredDocketEntries;
+  const hasExtractedEntries = caseData.entries && caseData.entries.length > 0;
+  const hasPythonStyleData = hasTextDescriptions || hasStructuredDocketEntries || hasExtractedEntries;
   
-  // If we have Python-style data, use the llm_summary.py prompt logic
+  // If we have Python-style or extracted_features data, use the llm_summary.py prompt logic
   if (hasPythonStyleData) {
-    // Build metadata lines similar to Python's summarize_docket function
+    // Build metadata from case_metadata (extracted format) or flat caseData
     const metadataLines: string[] = [];
-    
-    // Use case_number, fallback to docketNumber
-    const caseNumber = caseData.case_number || caseData.docketNumber;
-    if (caseNumber) {
-      metadataLines.push(`Case Number: ${caseNumber}`);
-    }
-    
-    // Use case_name, fallback to caseName
-    const caseName = caseData.case_name || caseData.caseName;
-    if (caseName) {
-      metadataLines.push(`Case Name: ${caseName}`);
-    }
-    
-    // Use date_filed, fallback to dateFiled
-    const dateFiled = caseData.date_filed || caseData.dateFiled;
-    if (dateFiled) {
-      metadataLines.push(`Date Filed: ${dateFiled}`);
-    }
-    
+    const caseNumber = caseData.case_metadata?.case_number ?? caseData.case_number ?? caseData.docketNumber;
+    if (caseNumber) metadataLines.push(`Case Number: ${caseNumber}`);
+    const caseName = caseData.case_metadata?.case_name ?? caseData.case_name ?? caseData.caseName;
+    if (caseName) metadataLines.push(`Case Name: ${caseName}`);
+    const dateFiled = caseData.case_metadata?.date_filed ?? caseData.date_filed ?? caseData.dateFiled;
+    if (dateFiled) metadataLines.push(`Date Filed: ${dateFiled}`);
     const metadata = metadataLines.join("\n");
     
-    // Get the docket text - prefer text_descriptions, then plainText, then snippet
-    // or build from structured docket_entries
+    // Build docket text from extracted_features.entries, docket_entries, text_descriptions, or plainText/snippet
     let docketText = "";
     
     if (hasTextDescriptions && caseData.text_descriptions) {
       docketText = caseData.text_descriptions;
+    } else if (hasExtractedEntries && caseData.entries) {
+      const entryTexts = caseData.entries.map((entry) => {
+        const parts: string[] = [];
+        if (entry.entry_number != null) parts.push(`Entry ${entry.entry_number}`);
+        const filed = entry.date_filed ?? (entry as { filing_date?: string }).filing_date;
+        if (filed) parts.push(`Filed ${filed}`);
+        if (entry.document_number) parts.push(`Doc #${entry.document_number}`);
+        const prefix = parts.length > 0 ? `[${parts.join(", ")}] ` : "";
+        const desc = entry.description ?? "";
+        const plain = entry.plain_text ?? "";
+        return `${prefix}${desc}${plain ? " " + plain : ""}`.trim();
+      });
+      docketText = entryTexts.join("\n");
     } else if (hasStructuredDocketEntries && caseData.docket_entries) {
-      // Convert structured docket entries to text format similar to text_descriptions
-      const entryTexts = caseData.docket_entries.map(entry => {
-        const entryParts = [];
-        if (entry.entry_number) {
-          entryParts.push(`Entry ${entry.entry_number}`);
+      const entryTexts = caseData.docket_entries.map((entry) => {
+        const entryParts: string[] = [];
+        if (entry.entry_number != null) entryParts.push(`Entry ${entry.entry_number}`);
+        const filed = entry.filing_date ?? (entry as { date_filed?: string }).date_filed;
+        if (filed) entryParts.push(`Filed ${filed}`);
+        if (entry.document_number) entryParts.push(`Doc #${entry.document_number}`);
+        if ((entry as { pacer_sequence_number?: string }).pacer_sequence_number) {
+          entryParts.push(`PACER Seq ${(entry as { pacer_sequence_number: string }).pacer_sequence_number}`);
         }
-        if (entry.filing_date) {
-          entryParts.push(`Filed ${entry.filing_date}`);
-        }
-        if (entry.document_number) {
-          entryParts.push(`Doc #${entry.document_number}`);
-        }
-        if (entry.pacer_sequence_number) {
-          entryParts.push(`PACER Seq ${entry.pacer_sequence_number}`);
-        }
-        
-        const entryPrefix = entryParts.length > 0 ? `[${entryParts.join(", ")}] ` : '';
+        const entryPrefix = entryParts.length > 0 ? `[${entryParts.join(", ")}] ` : "";
         return `${entryPrefix}${entry.description}`;
       });
       docketText = entryTexts.join("\n");

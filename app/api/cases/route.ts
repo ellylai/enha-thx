@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { fallbackCases } from "@/lib/fallback-cases";
 import type { CasesResponse, CourtCase } from "@/lib/types";
 
+// Query API calls
+
 const BASE_URL =
   process.env.COURTLISTENER_BASE_URL ??
   "https://www.courtlistener.com/api/rest/v4/";
@@ -10,12 +12,15 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q") ?? "";
   const court = searchParams.get("court") ?? "";
-  const docketNumber = searchParams.get("docketNumber") ?? "";
+  const docketNumber =
+    searchParams.get("docketNumber") ?? searchParams.get("docket_number") ?? "";
   const natureOfSuit = searchParams.get("natureOfSuit") ?? "";
   const dateFiledAfter = searchParams.get("dateFiledAfter") ?? "";
   const dateFiledBefore = searchParams.get("dateFiledBefore") ?? "";
 
-  // Check if only general search is being used (no specific filters)
+  // CourtListener UI for docket-only search: type=r&docket_number=04722&order_by=score desc (q empty).
+  // Use search endpoint with type=r and docket_number when user provides a docket number.
+  const docketOnly = !!docketNumber.trim() && !q.trim();
   const isGeneralSearchOnly =
     q &&
     !court &&
@@ -28,18 +33,25 @@ export async function GET(request: NextRequest) {
   params.set("page_size", "20");
 
   let endpoint: string;
+  let useSearchResponseFormat = false;
 
-  if (isGeneralSearchOnly) {
-    // Use search endpoint for general text search
+  if (docketOnly) {
+    endpoint = "search/";
+    params.set("type", "r"); // Federal cases (dockets)
+    params.set("docket_number", docketNumber.trim());
+    params.set("order_by", "score desc");
+    if (court) params.set("court", court);
+    useSearchResponseFormat = true;
+  } else if (isGeneralSearchOnly) {
     endpoint = "search/";
     params.set("q", q);
-    params.set("type", "o"); // 'o' for opinions/dockets
+    params.set("type", "o"); // 'o' for opinions
+    useSearchResponseFormat = true;
   } else {
-    // Use dockets endpoint for specific filters
     endpoint = "dockets/";
     if (q) params.set("search", q);
     if (court) params.set("court", court);
-    if (docketNumber) params.set("docket_number__icontains", docketNumber);
+    if (docketNumber) params.set("docket_number", docketNumber.trim());
     if (natureOfSuit) params.set("nature_of_suit__startswith", natureOfSuit);
     if (dateFiledAfter) params.set("date_filed__gte", dateFiledAfter);
     if (dateFiledBefore) params.set("date_filed__lte", dateFiledBefore);
@@ -80,8 +92,8 @@ export async function GET(request: NextRequest) {
         let dateFiled: string;
         let status: string;
 
-        if (isGeneralSearchOnly) {
-          // Handle search endpoint response format
+        if (useSearchResponseFormat) {
+          // Handle search endpoint response format (used for q search and docket number search)
           resolvedDocketNumber = String(item.docketNumber ?? item.docket_number ?? "");
           caseName = String(item.caseName ?? item.case_name ?? item.title ?? "");
           judgeName = String(item.assignedTo ?? item.assigned_to ?? "");
