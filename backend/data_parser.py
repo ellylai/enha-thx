@@ -65,7 +65,8 @@ def flatten_dockets_to_cases(file_path):
 
 if __name__ == "__main__":
     # Execute flattening
-    label = "pos"
+    # label = "pos"
+    label = "neg"
     df = flatten_dockets_to_cases(f"{label}_extracted_features.json")
 
     # Save to CSV
