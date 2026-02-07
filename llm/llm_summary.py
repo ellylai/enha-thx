@@ -34,22 +34,51 @@ def summarize_docket(case_text: str, case_info: dict = None) -> str:
 
     # Build the prompt (simplified version of your frontend prompt)
     prompt = f"""
-Summarize these federal court docket entries in plain English.
+    Summarize these federal court docket entries into a SHORT, SIMPLE, CHRONOLOGICAL
+    timeline for a small sidebar in a web app.
 
-{metadata}
+    CASE METADATA (include at the top of the output):
+    {metadata}
 
-Docket entries:
-{case_text[:6000]}
+    Docket entries:
+    {case_text[:6000]}
 
-Provide a concise factual summary with these sections:
-1. Core Issue: What is this case about?
-2. Procedural History: Key events and filings
-3. Court Orders: Any orders issued by the judge
-4. Deadlines & Dates: Important timelines
-5. Current Status: Where does the case stand?
+    CRITICAL RULES:
+    - Order events by DATE (earliest --> latest).
+    - Use plain everyday English.
+    - Pretend the reader has ZERO legal knowledge.
+    - Avoid legal jargon and technical terms.
+    - Skip routine filings, extensions, attorney appearances, and administrative paperwork.
+    - Highlight major actions, decisions, deadlines, violations, or conflicts.
 
-Keep it neutral and factual. No legal advice or judgments.
-"""
+    PERSON-FOCUSED RULES:
+    - Clearly identify the person.
+    - Focus on what is happening TO that person in each moment.
+    - Emphasize changes to their freedom, custody, or legal situation.
+    - If the court requires the government to act, explain what that could mean for the person (release, hearing, continued detention, etc.).
+    - If the judge finds something unlawful or unconstitutional, say so in simple language.
+    - Do NOT invent background details, emotions, family info, or reasons for detention.
+    - Only include facts that appear in the docket.
+
+    STYLE RULES:
+    - Each bullet must be one to two short sentences.
+    - Use active voice.
+    - Keep sentences direct and concrete.
+    - Avoid naming every government official unless necessary.
+    - If something is minor, repetitive, or procedural, omit it.
+
+    Output format:
+
+    [Case metadata shown first]
+
+    Date: Event
+    Date: Event
+    Date: Event
+
+    Keep the list brief and only include the most important moments.
+    Do not include any headers or explanations.
+    Start immediately with the metadata and timeline.
+    """
 
     print(f"Generating summary for case: {case_info.get('case_number', 'unknown')}")
 
