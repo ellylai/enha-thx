@@ -19,6 +19,10 @@ type AnalysisResponse = {
   };
 };
 
+interface DocketEntry {
+  entry_number: number | null;
+}
+
 const BASE_URL =
   process.env.COURTLISTENER_BASE_URL ??
   "https://www.courtlistener.com/api/rest/v4/";
@@ -357,7 +361,7 @@ async function generateExtractedFeatures(docketId: string) {
       
       return extractedEntry;
     })
-    .sort((a, b) => {
+    .sort((a: DocketEntry, b: DocketEntry) => {
       // Sort by entry_number (ascending), handle nulls by putting them at the end
       if (a.entry_number === null && b.entry_number === null) return 0;
       if (a.entry_number === null) return 1;
