@@ -1,22 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --surface: #f5f7fb;
-  --surface-soft: #edf2f8;
-  --ink: #10233f;
-  --ink-soft: #233a5f;
-  --ink-muted: #4e6283;
-  --line: #d5deea;
-  --line-strong: #afbdd2;
-  --accent: #1f6feb;
-  --accent-soft: #9ec1ff;
-  --danger: #c62828;
-  --card-shadow: 0 8px 24px rgba(13, 31, 58, 0.06);
+  --surface: #ffffff;
+  --surface-soft: #ffffff;
+  --ink: #000000;
+  --ink-soft: #111111;
+  --ink-muted: #444444;
+  --line: #000000;
+  --line-strong: #000000;
+  --accent: #000000;
+  --accent-soft: #000000;
+  --danger: #000000;
+  --card-shadow: none;
 }
 
 @theme inline {
-  --font-sans: "Avenir Next", "Frutiger", "Segoe UI", sans-serif;
-  --font-serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+  --font-sans: "Helvetica Neue", "Univers", "Arial Narrow", Arial, sans-serif;
+  --font-serif: "Helvetica Neue", "Univers", "Arial Narrow", Arial, sans-serif;
 }
 
 * {
@@ -30,19 +30,55 @@ body {
 }
 
 body {
-  background:
-    radial-gradient(circle at 5% 0%, rgba(31, 111, 235, 0.08), transparent 25%),
-    radial-gradient(circle at 100% 100%, rgba(16, 35, 63, 0.06), transparent 30%),
-    var(--surface);
+  background: var(--surface);
   color: var(--ink);
-  font-family: "Avenir Next", "Frutiger", "Segoe UI", sans-serif;
+  font-family: "Helvetica Neue", "Univers", "Arial Narrow", Arial, sans-serif;
+  font-weight: 300;
+  letter-spacing: 0.01em;
 }
 
 .font-serif {
-  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+  font-family: "Helvetica Neue", "Univers", "Arial Narrow", Arial, sans-serif;
+  font-weight: 300;
 }
 
 ::selection {
-  background: #b9d3ff;
-  color: #0f2e5c;
+  background: #000;
+  color: #fff;
+}
+
+h1,
+h2,
+h3 {
+  font-family: "Helvetica Neue", "Univers", "Arial Narrow", Arial, sans-serif;
+  font-weight: 300;
+  letter-spacing: 0.01em;
+}
+
+button,
+input,
+textarea,
+select {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+* {
+  box-shadow: none !important;
+}
+
+[class*="rounded"] {
+  border-radius: 0 !important;
+}
+
+[class*="shadow"] {
+  box-shadow: none !important;
+}
+
+.bg-gradient-to-b {
+  background-image: none !important;
+}
+
+.backdrop-blur {
+  backdrop-filter: none !important;
 }

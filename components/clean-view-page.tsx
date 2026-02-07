@@ -36,13 +36,13 @@ type Stage = "intro" | "search" | "select" | "review";
 
 function StepCard({ step, title, description, children }: StepCardProps) {
   return (
-    <section className="rounded-2xl border border-[var(--line)] bg-white p-6 shadow-[var(--card-shadow)]">
-      <div className="mb-4 flex items-start gap-3">
-        <div className="rounded-full bg-[var(--surface-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--ink-muted)]">
+    <section className="border-t-2 border-[var(--line)] pt-6">
+      <div className="mb-5 flex items-start gap-4">
+        <div className="border border-[var(--line)] px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">
           {step}
         </div>
         <div>
-          <h2 className="font-serif text-xl font-semibold text-[var(--ink)]">{title}</h2>
+          <h2 className="font-serif text-3xl font-light tracking-[-0.01em] text-[var(--ink)]">{title}</h2>
           <p className="mt-1 text-sm text-[var(--ink-muted)]">{description}</p>
         </div>
       </div>
@@ -186,39 +186,39 @@ export default function CleanViewPage() {
         Skip to main content
       </a>
 
-      <header className="border-b border-[var(--line)] bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
+      <header className="border-b border-[var(--line)] bg-white">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">
               Clean View
             </p>
-            <h1 className="font-serif text-2xl font-semibold tracking-tight text-[var(--ink)]">
+            <h1 className="font-serif text-5xl font-light tracking-[-0.03em] text-[var(--ink)]">
               Court Case Intelligence
             </h1>
           </div>
           {stage === "intro" ? (
-            <div className="hidden rounded-full border border-[var(--line)] px-3 py-1 text-xs font-medium text-[var(--ink-muted)] sm:block">
+            <div className="hidden border border-[var(--line)] px-3 py-1 text-xs font-medium uppercase tracking-[0.12em] text-[var(--ink-muted)] sm:block">
               CourtListener Workflow
             </div>
           ) : (
-            <div className="hidden rounded-full border border-[var(--line)] px-3 py-1 text-xs font-medium text-[var(--ink-muted)] sm:block">
+            <div className="hidden border border-[var(--line)] px-3 py-1 text-xs font-medium uppercase tracking-[0.12em] text-[var(--ink-muted)] sm:block">
               Step 1 Search • Step 2 Select • Step 3 Summarize
             </div>
           )}
         </div>
       </header>
 
-      <main id="main-content" className="mx-auto flex max-w-5xl flex-col gap-6 px-6 py-8">
+      <main id="main-content" className="mx-auto flex max-w-6xl flex-col gap-10 px-6 py-10">
         {stage === "intro" ? (
           <>
-            <section className="rounded-3xl border border-[var(--line)] bg-white p-8 shadow-[var(--card-shadow)]">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">
+            <section className="border-t-2 border-[var(--line)] pt-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--ink-muted)]">
                 Legal Ops Case Triage
               </p>
-              <h2 className="mt-3 font-serif text-4xl font-semibold tracking-tight text-[var(--ink)]">
+              <h2 className="mt-4 max-w-5xl font-serif text-6xl font-light leading-[0.92] tracking-[-0.03em] text-[var(--ink)] sm:text-7xl">
                 Start with a case. End with a clear, risk-aware brief.
               </h2>
-              <p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--ink-soft)]">
+              <p className="mt-6 max-w-3xl text-sm leading-7 text-[var(--ink-soft)]">
                 This workflow helps your team find federal dockets in CourtListener, confirm the right case,
                 pass the docket ID to backend workflows, and generate a plain-English summary with risk signals.
               </p>
@@ -240,18 +240,18 @@ export default function CleanViewPage() {
               </div>
             </section>
 
-            <section id="how-it-works" className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <article className="rounded-2xl border border-[var(--line)] bg-white p-5">
+            <section id="how-it-works" className="grid grid-cols-1 gap-8 border-t border-[var(--line)] pt-8 sm:grid-cols-3">
+              <article className="border-t border-[var(--line)] pt-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-muted)]">Step 1</p>
                 <h3 className="mt-2 font-serif text-lg font-semibold text-[var(--ink)]">Find a case</h3>
                 <p className="mt-2 text-sm text-[var(--ink-soft)]">Search by filing language first, then refine only if needed.</p>
               </article>
-              <article className="rounded-2xl border border-[var(--line)] bg-white p-5">
+              <article className="border-t border-[var(--line)] pt-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-muted)]">Step 2</p>
                 <h3 className="mt-2 font-serif text-lg font-semibold text-[var(--ink)]">Confirm docket</h3>
                 <p className="mt-2 text-sm text-[var(--ink-soft)]">Select one case and confirm the docket ID before downstream actions.</p>
               </article>
-              <article className="rounded-2xl border border-[var(--line)] bg-white p-5">
+              <article className="border-t border-[var(--line)] pt-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-muted)]">Step 3</p>
                 <h3 className="mt-2 font-serif text-lg font-semibold text-[var(--ink)]">Generate summary</h3>
                 <p className="mt-2 text-sm text-[var(--ink-soft)]">Produce a plain-English brief with risk-aware context for review.</p>
@@ -340,7 +340,7 @@ export default function CleanViewPage() {
             </button>
 
             {showAdvanced ? (
-              <div id="advanced-filters" className="grid grid-cols-1 gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 sm:grid-cols-2">
+              <div id="advanced-filters" className="grid grid-cols-1 gap-3 border border-[var(--line)] bg-[var(--surface)] p-4 sm:grid-cols-2">
                 <div>
                   <label htmlFor="court" className="mb-1.5 block text-sm font-medium text-[var(--ink)]">
                     Court
@@ -530,7 +530,7 @@ export default function CleanViewPage() {
 
           <div className="mt-5">
             {activeCase ? (
-              <article className="mx-auto max-w-4xl rounded-2xl border-2 border-[var(--accent)] bg-gradient-to-b from-white to-[var(--surface)] p-6 shadow-[0_12px_40px_rgba(31,111,235,0.16)]">
+              <article className="mx-auto max-w-4xl border-2 border-[var(--accent)] bg-white p-6">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
                   Selected Case
                 </p>
