@@ -32,6 +32,8 @@ type StepCardProps = {
   children: React.ReactNode;
 };
 
+type Stage = "intro" | "search" | "select" | "review";
+
 function StepCard({ step, title, description, children }: StepCardProps) {
   return (
     <section className="rounded-2xl border border-[var(--line)] bg-white p-6 shadow-[var(--card-shadow)]">
@@ -50,6 +52,7 @@ function StepCard({ step, title, description, children }: StepCardProps) {
 }
 
 export default function CleanViewPage() {
+  const [stage, setStage] = useState<Stage>("intro");
   const [filters, setFilters] = useState<CaseFilters>(defaultFilters);
   const [searchFilters, setSearchFilters] = useState<CaseFilters>(defaultFilters);
   const [manualCaseId, setManualCaseId] = useState<string | null>(null);
@@ -61,6 +64,7 @@ export default function CleanViewPage() {
     "Focus on procedural posture, obligations, and immediate risk.",
   );
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showSearchHelp, setShowSearchHelp] = useState(false);
 
   const casesQuery = useQuery({
     queryKey: ["courtlistener-cases", searchFilters],
@@ -98,6 +102,7 @@ export default function CleanViewPage() {
 
   function handleSearch() {
     setSearchFilters({ ...filters });
+    setStage("select");
     setManualCaseId(null);
     setSelectedDocketId(null);
     setIsCaseConfirmed(false);
@@ -109,6 +114,7 @@ export default function CleanViewPage() {
   }
 
   function handleReset() {
+    setStage("search");
     setFilters(defaultFilters);
     setSearchFilters(defaultFilters);
     setManualCaseId(null);
@@ -122,6 +128,7 @@ export default function CleanViewPage() {
   }
 
   function handleSelectCase(caseId: string, docketId?: number) {
+    setStage("select");
     setManualCaseId(caseId);
     setSelectedDocketId(docketId ?? null);
     setIsCaseConfirmed(false);
@@ -134,6 +141,7 @@ export default function CleanViewPage() {
 
   function handleConfirmCaseSelection() {
     if (!manualCaseId || selectedDocketId === null) return;
+    setStage("review");
     setIsCaseConfirmed(true);
     setConfirmedCaseId(manualCaseId);
     setConfirmedDocketId(selectedDocketId);
@@ -148,6 +156,16 @@ export default function CleanViewPage() {
       },
       body: JSON.stringify({ docketId }),
     });
+  }
+
+  function handleSearchKeyDown(event: React.KeyboardEvent<HTMLFormElement>) {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    handleSearch();
+  }
+
+  function handleStartCaseReview() {
+    setStage("search");
   }
 
   return (
@@ -169,30 +187,116 @@ export default function CleanViewPage() {
               Court Case Intelligence
             </h1>
           </div>
-          <div className="hidden rounded-full border border-[var(--line)] px-3 py-1 text-xs font-medium text-[var(--ink-muted)] sm:block">
-            Step 1 Search • Step 2 Select • Step 3 Summarize
-          </div>
+          {stage === "intro" ? (
+            <div className="hidden rounded-full border border-[var(--line)] px-3 py-1 text-xs font-medium text-[var(--ink-muted)] sm:block">
+              CourtListener Workflow
+            </div>
+          ) : (
+            <div className="hidden rounded-full border border-[var(--line)] px-3 py-1 text-xs font-medium text-[var(--ink-muted)] sm:block">
+              Step 1 Search • Step 2 Select • Step 3 Summarize
+            </div>
+          )}
         </div>
       </header>
 
       <main id="main-content" className="mx-auto flex max-w-5xl flex-col gap-6 px-6 py-8">
-        <StepCard
-          step="Step 1"
-          title="Search cases"
-          description="Start with one query. Open advanced filters only when needed."
-        >
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              handleSearch();
-            }}
-            className="space-y-4"
-          >
+        {stage === "intro" ? (
+          <>
+            <section className="rounded-3xl border border-[var(--line)] bg-white p-8 shadow-[var(--card-shadow)]">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">
+                Legal Ops Case Triage
+              </p>
+              <h2 className="mt-3 font-serif text-4xl font-semibold tracking-tight text-[var(--ink)]">
+                Start with a case. End with a clear, risk-aware brief.
+              </h2>
+              <p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--ink-soft)]">
+                This workflow helps your team find federal dockets in CourtListener, confirm the right case,
+                pass the docket ID to backend workflows, and generate a plain-English summary with risk signals.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={handleStartCaseReview}
+                  className="rounded-lg bg-[var(--ink)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--ink-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
+                >
+                  Start a case review
+                </button>
+                <button
+                  type="button"
+                  onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}
+                  className="rounded-lg border border-[var(--line-strong)] px-5 py-3 text-sm font-semibold text-[var(--ink)] transition hover:bg-[var(--surface-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
+                >
+                  How it works
+                </button>
+              </div>
+            </section>
+
+            <section id="how-it-works" className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <article className="rounded-2xl border border-[var(--line)] bg-white p-5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-muted)]">Step 1</p>
+                <h3 className="mt-2 font-serif text-lg font-semibold text-[var(--ink)]">Find a case</h3>
+                <p className="mt-2 text-sm text-[var(--ink-soft)]">Search by filing language first, then refine only if needed.</p>
+              </article>
+              <article className="rounded-2xl border border-[var(--line)] bg-white p-5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-muted)]">Step 2</p>
+                <h3 className="mt-2 font-serif text-lg font-semibold text-[var(--ink)]">Confirm docket</h3>
+                <p className="mt-2 text-sm text-[var(--ink-soft)]">Select one case and confirm the docket ID before downstream actions.</p>
+              </article>
+              <article className="rounded-2xl border border-[var(--line)] bg-white p-5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-muted)]">Step 3</p>
+                <h3 className="mt-2 font-serif text-lg font-semibold text-[var(--ink)]">Generate summary</h3>
+                <p className="mt-2 text-sm text-[var(--ink-soft)]">Produce a plain-English brief with risk-aware context for review.</p>
+              </article>
+            </section>
+          </>
+        ) : (
+          <>
+            <StepCard
+              step="Step 1"
+              title="Search cases"
+              description="Start with one query. Open advanced filters only when needed."
+            >
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  handleSearch();
+                }}
+                onKeyDown={handleSearchKeyDown}
+                className="space-y-4"
+              >
             <div className="flex flex-col gap-3 sm:flex-row">
               <div className="flex-1">
-                <label htmlFor="query" className="mb-1.5 block text-sm font-medium text-[var(--ink)]">
-                  Search filings
-                </label>
+                <div className="mb-1.5 flex items-center gap-2">
+                  <label htmlFor="query" className="block text-sm font-medium text-[var(--ink)]">
+                    Search filings
+                  </label>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowSearchHelp((prev) => !prev)}
+                      aria-label="Search help"
+                      aria-expanded={showSearchHelp}
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[var(--line-strong)] text-xs font-semibold text-[var(--ink-muted)] transition hover:bg-[var(--surface-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
+                    >
+                      ?
+                    </button>
+                    {showSearchHelp ? (
+                      <div className="absolute left-0 z-20 mt-2 w-80 rounded-xl border border-[var(--line)] bg-white p-3 text-xs text-[var(--ink-soft)] shadow-[var(--card-shadow)]">
+                        <p className="font-semibold text-[var(--ink)]">How to search well</p>
+                        <p className="mt-1">Use plain phrases from filings, then narrow with filters if needed.</p>
+                        <p className="mt-2">
+                          Examples: <span className="font-medium">order to show cause</span>,{" "}
+                          <span className="font-medium">motion for sanctions</span>,{" "}
+                          <span className="font-medium">failure to comply</span>,{" "}
+                          <span className="font-medium">contempt</span>.
+                        </p>
+                        <p className="mt-2">
+                          Tip: Start broad, confirm one case, then continue to summary.
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
                 <input
                   id="query"
                   name="query"
@@ -302,14 +406,15 @@ export default function CleanViewPage() {
             >
               Reset search
             </button>
-          </form>
-        </StepCard>
+              </form>
+            </StepCard>
 
-        <StepCard
-          step="Step 2"
-          title="Select one case"
-          description="Pick a case from results to inspect details before generating a summary."
-        >
+            {stage !== "search" ? (
+              <StepCard
+                step="Step 2"
+                title="Select one case"
+                description="Pick a case from results to inspect details before generating a summary."
+              >
           <div className="rounded-xl border border-[var(--line)] bg-white">
             <div className="border-b border-[var(--line)] px-4 py-3">
               <p className="text-sm text-[var(--ink-muted)]" aria-live="polite">
@@ -428,52 +533,6 @@ export default function CleanViewPage() {
                   </div>
                 </dl>
 
-                {(analysisMutation.isPending || analysisMutation.data || analysisMutation.isError) ? (
-                  <section className="mt-4 rounded-xl border border-[var(--line)] bg-white p-4">
-                    <h4 className="text-sm font-semibold text-[var(--ink)]">Model prediction</h4>
-                    {analysisMutation.isPending ? (
-                      <p className="mt-2 text-sm text-[var(--ink-muted)]">
-                        Running classifier on docket-entry plain text...
-                      </p>
-                    ) : null}
-                    {analysisMutation.isError ? (
-                      <p className="mt-2 text-sm text-[var(--danger)]">
-                        {(analysisMutation.error as Error).message}
-                      </p>
-                    ) : null}
-                    {analysisMutation.data ? (
-                      <div className="mt-2 flex flex-wrap items-center gap-4">
-                        <span
-                          className={`inline-block rounded px-2 py-1 text-xs font-semibold ${
-                            analysisMutation.data.weakLabel === "HIGH_RISK"
-                              ? "bg-red-100 text-red-800"
-                              : analysisMutation.data.weakLabel === "MEDIUM_RISK"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-green-100 text-green-800"
-                          }`}
-                        >
-                          {analysisMutation.data.weakLabel.replace("_", " ")}
-                        </span>
-                        <span className="text-sm text-[var(--ink-soft)]">
-                          Score: {(analysisMutation.data.noncomplianceScore * 100).toFixed(1)}%
-                        </span>
-                        <span className="text-xs text-[var(--ink-muted)]">
-                          Source: {analysisMutation.data.classifierSource}
-                        </span>
-                      </div>
-                    ) : null}
-                  </section>
-                ) : null}
-
-                <section aria-labelledby="filing-content" className="mt-4">
-                  <h4 id="filing-content" className="text-sm font-semibold text-[var(--ink)]">
-                    Filing text (cleaned)
-                  </h4>
-                  <p className="mt-2 rounded-xl border border-[var(--line)] bg-white p-4 text-sm leading-7 text-[var(--ink-soft)]">
-                    {analysisMutation.data?.plainText ?? activeCase.plainText}
-                  </p>
-                </section>
-
                 {activeCase.absoluteUrl ? (
                   <a
                     href={activeCase.absoluteUrl}
@@ -490,7 +549,7 @@ export default function CleanViewPage() {
                     type="button"
                     onClick={handleConfirmCaseSelection}
                     disabled={
-                      !selectedDocketId ||
+                      selectedDocketId === null ||
                       (isCaseConfirmed && confirmedCaseId === activeCase.id)
                     }
                     className="rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--ink-soft)] disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
@@ -499,7 +558,7 @@ export default function CleanViewPage() {
                       ? "Case confirmed"
                       : "Confirm selected case"}
                   </button>
-                  {!selectedDocketId ? (
+                  {selectedDocketId === null ? (
                     <p className="mt-2 text-xs text-[var(--ink-muted)]">
                       Confirm is available after case selection.
                     </p>
@@ -512,9 +571,10 @@ export default function CleanViewPage() {
               </div>
             ) : null}
           </div>
-        </StepCard>
+              </StepCard>
+            ) : null}
 
-        {activeCase && isCaseConfirmed && confirmedCaseId === activeCase.id ? (
+        {stage === "review" && activeCase && isCaseConfirmed && confirmedCaseId === activeCase.id ? (
           <StepCard
             step="Step 3"
             title="Read and summarize"
@@ -576,11 +636,13 @@ export default function CleanViewPage() {
               </div>
             </div>
           </StepCard>
-        ) : activeCase ? (
+        ) : stage !== "search" && activeCase ? (
           <div className="rounded-xl border border-dashed border-[var(--line-strong)] bg-[var(--surface)] p-6 text-center text-sm text-[var(--ink-muted)]">
             Confirm the selected case to continue to summary.
           </div>
         ) : null}
+          </>
+        )}
       </main>
     </div>
   );
