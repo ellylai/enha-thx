@@ -5,9 +5,12 @@ export async function fetchCases(filters: CaseFilters): Promise<CasesResponse> {
 
   if (filters.q.trim()) params.set("q", filters.q.trim());
   if (filters.court) params.set("court", filters.court);
-  if (filters.jurisdiction) params.set("jurisdiction", filters.jurisdiction);
-  if (filters.filedAfter) params.set("filedAfter", filters.filedAfter);
-  if (filters.filedBefore) params.set("filedBefore", filters.filedBefore);
+  if (filters.docketNumber) params.set("docketNumber", filters.docketNumber);
+  if (filters.natureOfSuit) params.set("natureOfSuit", filters.natureOfSuit);
+  if (filters.dateFiledAfter)
+    params.set("dateFiledAfter", filters.dateFiledAfter);
+  if (filters.dateFiledBefore)
+    params.set("dateFiledBefore", filters.dateFiledBefore);
 
   const response = await fetch(`/api/cases?${params.toString()}`, {
     method: "GET",
@@ -33,9 +36,9 @@ export async function generateSummary(input: {
   });
 
   if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as
-      | { error?: string }
-      | null;
+    const payload = (await response.json().catch(() => null)) as {
+      error?: string;
+    } | null;
     throw new Error(payload?.error ?? "Summary generation failed");
   }
 
