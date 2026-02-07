@@ -863,23 +863,6 @@ export default function CleanViewPage() {
                     </section>
                   ) : null}
 
-                  <section
-                    aria-labelledby="filing-content"
-                    className="rounded-xl border border-[var(--line)] bg-white p-4"
-                  >
-                    <h4
-                      id="filing-content"
-                      className="text-sm font-semibold text-[var(--ink)]"
-                    >
-                      Filing text (cleaned)
-                    </h4>
-                    <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-[var(--ink-soft)]">
-                      {analysisMutation.data?.plainText ??
-                        activeCase.plainText ??
-                        "No filing text available."}
-                    </p>
-                  </section>
-
                   <div>
                     <label
                       htmlFor="summary-prompt"
