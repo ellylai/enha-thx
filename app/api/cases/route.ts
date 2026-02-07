@@ -132,6 +132,13 @@ export async function GET(request: NextRequest) {
     );
     console.log("=== END API CALL ===");
 
+    // ELLYSE CHANGED, LOOK ALSO AT api.classification.py
+    const prediction = await fetch("/api/classification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(results),
+    });
+
     return NextResponse.json(payload);
   } catch (error) {
     console.log("API Error - using fallback data:", error);
