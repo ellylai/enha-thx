@@ -15,14 +15,35 @@ export async function GET(request: NextRequest) {
   const dateFiledAfter = searchParams.get("dateFiledAfter") ?? "";
   const dateFiledBefore = searchParams.get("dateFiledBefore") ?? "";
 
+  // Check if only general search is being used (no specific filters)
+  const isGeneralSearchOnly =
+    q &&
+    !court &&
+    !docketNumber &&
+    !natureOfSuit &&
+    !dateFiledAfter &&
+    !dateFiledBefore;
+
   const params = new URLSearchParams();
   params.set("page_size", "20");
-  if (q) params.set("search", q);
-  if (court) params.set("court", court);
-  if (docketNumber) params.set("docket_number__icontains", docketNumber);
-  if (natureOfSuit) params.set("nature_of_suit__startswith", natureOfSuit);
-  if (dateFiledAfter) params.set("date_filed__gte", dateFiledAfter);
-  if (dateFiledBefore) params.set("date_filed__lte", dateFiledBefore);
+
+  let endpoint: string;
+
+  if (isGeneralSearchOnly) {
+    // Use search endpoint for general text search
+    endpoint = "search/";
+    params.set("q", q);
+    params.set("type", "o"); // 'o' for opinions/dockets
+  } else {
+    // Use dockets endpoint for specific filters
+    endpoint = "dockets/";
+    if (q) params.set("search", q);
+    if (court) params.set("court", court);
+    if (docketNumber) params.set("docket_number__icontains", docketNumber);
+    if (natureOfSuit) params.set("nature_of_suit__startswith", natureOfSuit);
+    if (dateFiledAfter) params.set("date_filed__gte", dateFiledAfter);
+    if (dateFiledBefore) params.set("date_filed__lte", dateFiledBefore);
+  }
 
   const headers: HeadersInit = { Accept: "application/json" };
   if (process.env.COURTLISTENER_API_KEY) {
@@ -30,7 +51,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const fullUrl = `${BASE_URL}dockets/?${params.toString()}`;
+    const fullUrl = `${BASE_URL}${endpoint}?${params.toString()}`;
 
     const upstream = await fetch(fullUrl, {
       method: "GET",
@@ -52,19 +73,46 @@ export async function GET(request: NextRequest) {
 
     const results: CourtCase[] = await Promise.all(
       (data.results ?? []).map(async (item) => {
-        const docketNumber = String(item.docket_number ?? "");
-        const caseName = String(item.case_name ?? "");
-        // Extract judge if available in the CourtListener item structure
-        const judgeName = String(item.assigned_to ?? "");
-        const courtName = String(
-          item.court ?? item.court_id ?? "Unknown Court",
-        );
-        const textSnippet = String(
-          item.snippet ??
-            item.summary ??
-            item.nature_of_suit ??
-            "No preview available.",
-        );
+        let docketNumber: string;
+        let caseName: string;
+        let judgeName: string;
+        let courtName: string;
+        let textSnippet: string;
+        let dateFiled: string;
+        let status: string;
+
+        if (isGeneralSearchOnly) {
+          // Handle search endpoint response format
+          docketNumber = String(item.docketNumber ?? item.docket_number ?? "");
+          caseName = String(
+            item.caseName ?? item.case_name ?? item.title ?? "",
+          );
+          judgeName = String(item.assignedTo ?? item.assigned_to ?? "");
+          courtName = String(item.court ?? item.court_id ?? "Unknown Court");
+          textSnippet = String(
+            item.text ??
+              item.snippet ??
+              item.summary ??
+              "No preview available.",
+          );
+          dateFiled = String(item.dateFiled ?? item.date_filed ?? "");
+          status = String(item.status ?? "");
+        } else {
+          // Handle dockets endpoint response format
+          docketNumber = String(item.docket_number ?? "");
+          caseName = String(item.case_name ?? "");
+          judgeName = String(item.assigned_to ?? "");
+          courtName = String(item.court ?? item.court_id ?? "Unknown Court");
+          textSnippet = String(
+            item.snippet ??
+              item.summary ??
+              item.nature_of_suit ??
+              "No preview available.",
+          );
+          dateFiled = String(item.date_filed ?? "");
+          status = String(item.status ?? "");
+        }
+
         const cleanedSnippet = textSnippet
           .replace(/<[^>]*>/g, " ")
           .replace(/\s+/g, " ")
@@ -103,14 +151,14 @@ export async function GET(request: NextRequest) {
 
         return {
           id: String(item.id ?? crypto.randomUUID()),
-          caseName: String(item.case_name ?? "Untitled"),
-          docketNumber: String(item.docket_number ?? ""),
-          court: String(item.court ?? "Unknown"), // Required
-          jurisdiction: String(item.jurisdiction ?? ""), // Required
-          dateFiled: String(item.date_filed ?? ""),
-          status: String(item.status ?? ""),
-          snippet: cleanedSnippet || "No snippet", // Required
-          plainText: cleanedSnippet || "No text", // Required
+          caseName: caseName || "Untitled",
+          docketNumber: docketNumber || "",
+          court: courtName || "Unknown",
+          jurisdiction: String(item.jurisdiction ?? ""),
+          dateFiled: dateFiled || "",
+          status: status || "",
+          snippet: cleanedSnippet || "No snippet",
+          plainText: cleanedSnippet || "No text",
           noncomplianceScore: mlResults.score,
           weakLabel: mlResults.label,
         };
@@ -123,7 +171,9 @@ export async function GET(request: NextRequest) {
       source: "live",
     };
 
-    console.log("\n=== FINAL API RESPONSE ===");
+    console.log(
+      `\n=== FINAL API RESPONSE (${endpoint.slice(0, -1)} endpoint) ===`,
+    );
     console.log("Processed results count:", results.length);
     console.log("Total available:", payload.total);
     console.log(
