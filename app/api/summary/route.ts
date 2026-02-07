@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
-  const apiKey = process.env.OPENAI_API_KEY;
+  // 1. Change to GEMINI_API_KEY to match backend
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
       {
-        error:
-          "OPENAI_API_KEY is missing. Add it to your environment to enable AI summaries.",
+        error: "GEMINI_API_KEY is missing. Add it to your environment.",
       },
       { status: 500 },
     );
   }
-
+  
   const body = (await request.json()) as {
     caseData?: {
       caseName?: string;
@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
 
   const customPrompt = body.customPrompt?.trim();
 
+  // Construct prompt aligned with backend llm_summary.py
   const userPrompt = [
     `Case: ${body.caseData.caseName ?? "Unknown"}`,
     `Court: ${body.caseData.court ?? "Unknown"}`,
@@ -44,40 +45,43 @@ export async function POST(request: NextRequest) {
     .filter(Boolean)
     .join("\n");
 
-  const upstream = await fetch("https://api.openai.com/v1/responses", {
+  // 2. Point to Google's OpenAI-compatible Gemini endpoint
+  const upstream = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "gpt-4.1-mini",
-      input: [
+      // 3. Use the same model as your backend
+      model: "gemini-2.0-flash", 
+      messages: [
         {
           role: "system",
           content:
-            "You are a legal operations assistant. Explain filings in plain English for attorneys and legal ops teams. Keep output concise, factual, and neutral. Include sections: Core Issue, Procedural Posture, Obligations/Deadlines, Compliance Risk.",
+            "You are a legal operations assistant. Summarize federal court docket entries in plain English. Concise factual summary with sections: Core Issue, Procedural History, Court Orders, Deadlines & Dates, and Current Status.",
         },
         {
           role: "user",
           content: userPrompt,
         },
       ],
-      max_output_tokens: 350,
+      temperature: 0.3, // Match backend temperature
+      max_tokens: 500,  // Match backend token limit
     }),
   });
 
   if (!upstream.ok) {
     const errorBody = await upstream.text();
     return NextResponse.json(
-      { error: `OpenAI request failed: ${errorBody}` },
+      { error: `Gemini API request failed: ${errorBody}` },
       { status: upstream.status },
     );
   }
 
-  const data = (await upstream.json()) as {
-    output_text?: string;
-  };
+  const data = await upstream.json();
+  // Extract content from the standard OpenAI-compatible response structure
+  const summary = data.choices?.[0]?.message?.content ?? "No summary returned.";
 
-  return NextResponse.json({ summary: data.output_text ?? "No summary returned." });
+  return NextResponse.json({ summary });
 }
