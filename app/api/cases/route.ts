@@ -60,7 +60,6 @@ export async function GET(request: NextRequest) {
     });
 
     if (!upstream.ok) {
-      const errorText = await upstream.text();
       throw new Error(
         `CourtListener request failed with status ${upstream.status}`,
       );
@@ -73,7 +72,7 @@ export async function GET(request: NextRequest) {
 
     const results: CourtCase[] = await Promise.all(
       (data.results ?? []).map(async (item) => {
-        let docketNumber: string;
+        let resolvedDocketNumber: string;
         let caseName: string;
         let judgeName: string;
         let courtName: string;
@@ -83,31 +82,23 @@ export async function GET(request: NextRequest) {
 
         if (isGeneralSearchOnly) {
           // Handle search endpoint response format
-          docketNumber = String(item.docketNumber ?? item.docket_number ?? "");
-          caseName = String(
-            item.caseName ?? item.case_name ?? item.title ?? "",
-          );
+          resolvedDocketNumber = String(item.docketNumber ?? item.docket_number ?? "");
+          caseName = String(item.caseName ?? item.case_name ?? item.title ?? "");
           judgeName = String(item.assignedTo ?? item.assigned_to ?? "");
           courtName = String(item.court ?? item.court_id ?? "Unknown Court");
           textSnippet = String(
-            item.text ??
-              item.snippet ??
-              item.summary ??
-              "No preview available.",
+            item.text ?? item.snippet ?? item.summary ?? "No preview available.",
           );
           dateFiled = String(item.dateFiled ?? item.date_filed ?? "");
           status = String(item.status ?? "");
         } else {
           // Handle dockets endpoint response format
-          docketNumber = String(item.docket_number ?? "");
+          resolvedDocketNumber = String(item.docket_number ?? "");
           caseName = String(item.case_name ?? "");
           judgeName = String(item.assigned_to ?? "");
           courtName = String(item.court ?? item.court_id ?? "Unknown Court");
           textSnippet = String(
-            item.snippet ??
-              item.summary ??
-              item.nature_of_suit ??
-              "No preview available.",
+            item.snippet ?? item.summary ?? item.nature_of_suit ?? "No preview available.",
           );
           dateFiled = String(item.date_filed ?? "");
           status = String(item.status ?? "");
@@ -117,6 +108,12 @@ export async function GET(request: NextRequest) {
           .replace(/<[^>]*>/g, " ")
           .replace(/\s+/g, " ")
           .trim();
+
+        const absoluteUrl = item.absolute_url
+          ? String(item.absolute_url).startsWith("http")
+            ? String(item.absolute_url)
+            : `https://www.courtlistener.com${String(item.absolute_url)}`
+          : undefined;
 
         let mlResults = { score: 0, label: "UNKNOWN" };
 
@@ -128,7 +125,7 @@ export async function GET(request: NextRequest) {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                case_number: docketNumber,
+                case_number: resolvedDocketNumber,
                 case_name: caseName,
                 judge: judgeName,
               }),
@@ -152,15 +149,17 @@ export async function GET(request: NextRequest) {
         return {
           id: String(item.id ?? crypto.randomUUID()),
           caseName: caseName || "Untitled",
-          docketNumber: docketNumber || "",
+          docketNumber: resolvedDocketNumber || "",
           court: courtName || "Unknown",
           jurisdiction: String(item.jurisdiction ?? ""),
           dateFiled: dateFiled || "",
           status: status || "",
+          absoluteUrl,
           snippet: cleanedSnippet || "No snippet",
           plainText: cleanedSnippet || "No text",
           noncomplianceScore: mlResults.score,
           weakLabel: mlResults.label,
+          docketId: String(item.id ?? ""),
         };
       }),
     );

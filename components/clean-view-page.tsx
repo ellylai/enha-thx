@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { fetchCases, generateSummary } from "@/lib/api-client";
+import { analyzeCase, fetchCases, generateSummary } from "@/lib/api-client";
 import type { CaseFilters, CourtCase } from "@/lib/types";
 
 const defaultFilters: CaseFilters = {
@@ -25,51 +25,129 @@ function formatDate(value?: string): string {
   });
 }
 
+type StepCardProps = {
+  step: string;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+};
+
+function StepCard({ step, title, description, children }: StepCardProps) {
+  return (
+    <section className="rounded-2xl border border-[var(--line)] bg-white p-6 shadow-[var(--card-shadow)]">
+      <div className="mb-4 flex items-start gap-3">
+        <div className="rounded-full bg-[var(--surface-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--ink-muted)]">
+          {step}
+        </div>
+        <div>
+          <h2 className="font-serif text-xl font-semibold text-[var(--ink)]">{title}</h2>
+          <p className="mt-1 text-sm text-[var(--ink-muted)]">{description}</p>
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
+
 export default function CleanViewPage() {
   const [filters, setFilters] = useState<CaseFilters>(defaultFilters);
-  const [searchFilters, setSearchFilters] =
-    useState<CaseFilters>(defaultFilters);
+  const [searchFilters, setSearchFilters] = useState<CaseFilters>(defaultFilters);
   const [manualCaseId, setManualCaseId] = useState<string | null>(null);
+  const [selectedDocketId, setSelectedDocketId] = useState<string | null>(null);
+  const [isCaseConfirmed, setIsCaseConfirmed] = useState(false);
+  const [confirmedCaseId, setConfirmedCaseId] = useState<string | null>(null);
+  const [confirmedDocketId, setConfirmedDocketId] = useState<string | null>(null);
   const [promptHint, setPromptHint] = useState(
     "Focus on procedural posture, obligations, and immediate risk.",
   );
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const casesQuery = useQuery({
     queryKey: ["courtlistener-cases", searchFilters],
     queryFn: () => fetchCases(searchFilters),
     placeholderData: (previous) => previous,
-    enabled: false, // Disable automatic execution
+    enabled: false,
   });
-
-  const handleSearch = () => {
-    setSearchFilters({ ...filters });
-    casesQuery.refetch();
-  };
-
-  const handleReset = () => {
-    setFilters(defaultFilters);
-    setSearchFilters(defaultFilters);
-  };
-
-  const activeCase = useMemo(() => {
-    const results = casesQuery.data?.results ?? [];
-    if (!results.length) return null;
-    if (!manualCaseId) return results[0] ?? null;
-    return (
-      results.find((item) => item.id === manualCaseId) ?? results[0] ?? null
-    );
-  }, [manualCaseId, casesQuery.data?.results]);
 
   const summaryMutation = useMutation({
     mutationFn: (input: { caseData: CourtCase; customPrompt: string }) =>
       generateSummary(input),
   });
+  const analysisMutation = useMutation({
+    mutationFn: (docketId: string) => analyzeCase(docketId),
+  });
+
+  const hasSearched =
+    casesQuery.isFetched ||
+    casesQuery.isFetching ||
+    !!casesQuery.data ||
+    !!casesQuery.error;
+
+  const activeCase = useMemo(() => {
+    if (!manualCaseId) return null;
+    const results = casesQuery.data?.results ?? [];
+    return results.find((item) => item.id === manualCaseId) ?? null;
+  }, [manualCaseId, casesQuery.data?.results]);
 
   function onFilterChange<K extends keyof CaseFilters>(
     key: K,
     value: CaseFilters[K],
   ) {
     setFilters((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleSearch() {
+    setSearchFilters({ ...filters });
+    setManualCaseId(null);
+    setSelectedDocketId(null);
+    setIsCaseConfirmed(false);
+    setConfirmedCaseId(null);
+    setConfirmedDocketId(null);
+    summaryMutation.reset();
+    analysisMutation.reset();
+    void casesQuery.refetch();
+  }
+
+  function handleReset() {
+    setFilters(defaultFilters);
+    setSearchFilters(defaultFilters);
+    setManualCaseId(null);
+    setSelectedDocketId(null);
+    setIsCaseConfirmed(false);
+    setConfirmedCaseId(null);
+    setConfirmedDocketId(null);
+    setShowAdvanced(false);
+    summaryMutation.reset();
+    analysisMutation.reset();
+  }
+
+  function handleSelectCase(caseId: string) {
+    setManualCaseId(caseId);
+    setSelectedDocketId(caseId);
+    setIsCaseConfirmed(false);
+    setConfirmedCaseId(null);
+    setConfirmedDocketId(null);
+    summaryMutation.reset();
+    analysisMutation.reset();
+    void analysisMutation.mutateAsync(caseId);
+  }
+
+  function handleConfirmCaseSelection() {
+    if (!manualCaseId || !selectedDocketId) return;
+    setIsCaseConfirmed(true);
+    setConfirmedCaseId(manualCaseId);
+    setConfirmedDocketId(selectedDocketId);
+    void printConfirmedDocketIdToTerminal(selectedDocketId);
+  }
+
+  async function printConfirmedDocketIdToTerminal(docketId: string): Promise<void> {
+    await fetch("/api/debug-docket", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ docketId }),
+    });
   }
 
   return (
@@ -82,7 +160,7 @@ export default function CleanViewPage() {
       </a>
 
       <header className="border-b border-[var(--line)] bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1440px] items-center justify-between px-6 py-4 lg:px-10">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">
               Clean View
@@ -91,411 +169,308 @@ export default function CleanViewPage() {
               Court Case Intelligence
             </h1>
           </div>
-          <div className="rounded-full border border-[var(--line)] px-3 py-1 text-xs font-medium text-[var(--ink-muted)]">
-            WCAG 2.1 AA-first UI
+          <div className="hidden rounded-full border border-[var(--line)] px-3 py-1 text-xs font-medium text-[var(--ink-muted)] sm:block">
+            Step 1 Search • Step 2 Select • Step 3 Summarize
           </div>
         </div>
       </header>
 
-      <main
-        id="main-content"
-        className="mx-auto grid max-w-[1440px] grid-cols-1 gap-6 px-6 py-6 lg:grid-cols-[320px_minmax(0,1fr)_360px] lg:px-10"
-      >
-        <section
-          aria-labelledby="search-filters"
-          className="h-fit rounded-xl border border-[var(--line)] bg-white p-5 shadow-[var(--card-shadow)]"
+      <main id="main-content" className="mx-auto flex max-w-5xl flex-col gap-6 px-6 py-8">
+        <StepCard
+          step="Step 1"
+          title="Search cases"
+          description="Start with one query. Open advanced filters only when needed."
         >
-          <h2
-            id="search-filters"
-            className="font-serif text-lg font-semibold text-[var(--ink)]"
-          >
-            Search & Filters
-          </h2>
-          <p className="mt-1 text-sm text-[var(--ink-muted)]">
-            Narrow by phrase, court, jurisdiction, and filing date.
-          </p>
-
           <form
-            className="mt-4 space-y-4"
             onSubmit={(event) => {
               event.preventDefault();
               handleSearch();
             }}
+            className="space-y-4"
           >
-            <div>
-              <label
-                htmlFor="query"
-                className="mb-1.5 block text-sm font-medium text-[var(--ink)]"
-              >
-                Search filings
-              </label>
-              <input
-                id="query"
-                name="query"
-                value={filters.q || ""}
-                onChange={(event) => onFilterChange("q", event.target.value)}
-                className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
-                placeholder="e.g. order to show cause"
-                aria-describedby="query-help"
-              />
-              <p
-                id="query-help"
-                className="mt-1 text-xs text-[var(--ink-muted)]"
-              >
-                Matches case names and available docket metadata.
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="flex-1">
+                <label htmlFor="query" className="mb-1.5 block text-sm font-medium text-[var(--ink)]">
+                  Search filings
+                </label>
+                <input
+                  id="query"
+                  name="query"
+                  value={filters.q}
+                  onChange={(event) => onFilterChange("q", event.target.value)}
+                  className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2.5 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
+                  placeholder="e.g. order to show cause"
+                />
+              </div>
+              <div className="flex items-end">
+                <button
+                  type="submit"
+                  disabled={casesQuery.isFetching}
+                  className="w-full rounded-lg bg-[var(--ink)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--ink-soft)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                >
+                  {casesQuery.isFetching ? "Searching..." : "Search cases"}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowAdvanced((prev) => !prev)}
+              aria-expanded={showAdvanced}
+              aria-controls="advanced-filters"
+              className="rounded-lg border border-[var(--line-strong)] px-3 py-2 text-sm font-semibold text-[var(--ink)] transition hover:bg-[var(--surface-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
+            >
+              {showAdvanced ? "Hide advanced filters" : "Advanced filters"}
+            </button>
+
+            {showAdvanced ? (
+              <div id="advanced-filters" className="grid grid-cols-1 gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="court" className="mb-1.5 block text-sm font-medium text-[var(--ink)]">
+                    Court
+                  </label>
+                  <input
+                    id="court"
+                    name="court"
+                    value={filters.court}
+                    onChange={(event) => onFilterChange("court", event.target.value)}
+                    className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
+                    placeholder="e.g. ca9, dmn"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="docket-number" className="mb-1.5 block text-sm font-medium text-[var(--ink)]">
+                    Docket number
+                  </label>
+                  <input
+                    id="docket-number"
+                    name="docket-number"
+                    value={filters.docketNumber}
+                    onChange={(event) => onFilterChange("docketNumber", event.target.value)}
+                    className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
+                    placeholder="e.g. 1:25-cv-00123"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="nature-of-suit" className="mb-1.5 block text-sm font-medium text-[var(--ink)]">
+                    Jurisdiction / nature of suit
+                  </label>
+                  <input
+                    id="nature-of-suit"
+                    name="nature-of-suit"
+                    value={filters.natureOfSuit}
+                    onChange={(event) => onFilterChange("natureOfSuit", event.target.value)}
+                    className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
+                    placeholder="e.g. 463 (habeas corpus)"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="filed-after" className="mb-1.5 block text-sm font-medium text-[var(--ink)]">
+                      Filed after
+                    </label>
+                    <input
+                      id="filed-after"
+                      name="filed-after"
+                      type="date"
+                      value={filters.dateFiledAfter}
+                      onChange={(event) => onFilterChange("dateFiledAfter", event.target.value)}
+                      className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="filed-before" className="mb-1.5 block text-sm font-medium text-[var(--ink)]">
+                      Filed before
+                    </label>
+                    <input
+                      id="filed-before"
+                      name="filed-before"
+                      type="date"
+                      value={filters.dateFiledBefore}
+                      onChange={(event) => onFilterChange("dateFiledBefore", event.target.value)}
+                      className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={handleReset}
+              className="rounded-lg border border-[var(--line-strong)] px-3 py-2 text-sm font-semibold text-[var(--ink)] transition hover:bg-[var(--surface-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
+            >
+              Reset search
+            </button>
+          </form>
+        </StepCard>
+
+        <StepCard
+          step="Step 2"
+          title="Select one case"
+          description="Pick a case from results to inspect details before generating a summary."
+        >
+          <div className="rounded-xl border border-[var(--line)] bg-white">
+            <div className="border-b border-[var(--line)] px-4 py-3">
+              <p className="text-sm text-[var(--ink-muted)]" aria-live="polite">
+                {casesQuery.isFetching
+                  ? "Searching CourtListener..."
+                  : casesQuery.data?.total
+                    ? `${casesQuery.data.total} cases found`
+                    : "Run a search to load cases"}
               </p>
             </div>
 
-            <div>
-              <label
-                htmlFor="court"
-                className="mb-1.5 block text-sm font-medium text-[var(--ink)]"
-              >
-                Court
-              </label>
-              <input
-                id="court"
-                name="court"
-                value={filters.court || ""}
-                onChange={(event) =>
-                  onFilterChange("court", event.target.value)
-                }
-                className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
-                placeholder="ca9, dmn, nyed"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="docket-number"
-                className="mb-1.5 block text-sm font-medium text-[var(--ink)]"
-              >
-                Docket Number
-              </label>
-              <input
-                id="docket-number"
-                name="docket-number"
-                value={filters.docketNumber || ""}
-                onChange={(event) =>
-                  onFilterChange("docketNumber", event.target.value)
-                }
-                className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
-                placeholder="e.g. 1:25-cv-00123"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="nature-of-suit"
-                className="mb-1.5 block text-sm font-medium text-[var(--ink)]"
-              >
-                Nature of Suit
-              </label>
-              <input
-                id="nature-of-suit"
-                name="nature-of-suit"
-                value={filters.natureOfSuit || ""}
-                onChange={(event) =>
-                  onFilterChange("natureOfSuit", event.target.value)
-                }
-                className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
-                placeholder="e.g. 463 (habeas corpus)"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label
-                  htmlFor="filed-after"
-                  className="mb-1.5 block text-sm font-medium text-[var(--ink)]"
-                >
-                  Filed after
-                </label>
-                <input
-                  id="filed-after"
-                  name="filed-after"
-                  type="date"
-                  value={filters.dateFiledAfter || ""}
-                  onChange={(event) =>
-                    onFilterChange("dateFiledAfter", event.target.value)
-                  }
-                  className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="filed-before"
-                  className="mb-1.5 block text-sm font-medium text-[var(--ink)]"
-                >
-                  Filed before
-                </label>
-                <input
-                  id="filed-before"
-                  name="filed-before"
-                  type="date"
-                  value={filters.dateFiledBefore || ""}
-                  onChange={(event) =>
-                    onFilterChange("dateFiledBefore", event.target.value)
-                  }
-                  className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={handleSearch}
-                disabled={casesQuery.isFetching}
-                className="rounded-lg bg-[var(--ink)] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[var(--ink-soft)] disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
-              >
-                {casesQuery.isFetching ? "Searching..." : "Search Cases"}
-              </button>
-              <button
-                type="button"
-                onClick={handleReset}
-                className="rounded-lg border border-[var(--line-strong)] px-3 py-2 text-sm font-semibold text-[var(--ink)] transition hover:bg-[var(--surface-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
-              >
-                Reset filters
-              </button>
-            </div>
-          </form>
-        </section>
-
-        <section className="space-y-4" aria-labelledby="document-viewer">
-          <h2 id="document-viewer" className="sr-only">
-            Document viewer
-          </h2>
-
-          <div className="rounded-xl border border-[var(--line)] bg-white shadow-[var(--card-shadow)]">
-            <div className="border-b border-[var(--line)] px-5 py-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="font-serif text-lg font-semibold text-[var(--ink)]">
-                  Search results
-                </h3>
-                <p
-                  className="text-xs text-[var(--ink-muted)]"
-                  aria-live="polite"
-                >
-                  {casesQuery.isFetching
-                    ? "Searching CourtListener..."
-                    : casesQuery.data?.total
-                      ? `${casesQuery.data.total} cases found`
-                      : "Click 'Search Cases' to begin"}
-                </p>
-              </div>
-            </div>
-
-            <ul
-              className="max-h-[300px] divide-y divide-[var(--line)] overflow-auto"
-              aria-live="polite"
-            >
+            <ul className="max-h-[280px] divide-y divide-[var(--line)] overflow-auto" aria-live="polite">
               {casesQuery.isLoading ? (
-                <li className="px-5 py-6 text-sm text-[var(--ink-muted)]">
-                  Loading cases...
-                </li>
+                <li className="px-4 py-5 text-sm text-[var(--ink-muted)]">Loading cases...</li>
               ) : null}
 
               {casesQuery.isError ? (
-                <li className="px-5 py-6 text-sm text-[var(--danger)]">
+                <li className="px-4 py-5 text-sm text-[var(--danger)]">
                   Unable to load results from CourtListener.
                 </li>
               ) : null}
 
-              {!casesQuery.isLoading &&
-              !casesQuery.data?.results.length &&
-              !casesQuery.isFetching ? (
-                <li className="px-5 py-6 text-sm text-[var(--ink-muted)] text-center">
-                  {casesQuery.data
-                    ? "No matching cases found. Try adjusting your filters."
-                    : "Use the search filters above and click 'Search Cases' to find court documents."}
+              {hasSearched && !casesQuery.isFetching && !casesQuery.data?.results.length ? (
+                <li className="px-4 py-8 text-center text-sm text-[var(--ink-muted)]">
+                  No matching cases found. Adjust search or open advanced filters.
+                </li>
+              ) : null}
+
+              {!hasSearched ? (
+                <li className="px-4 py-8 text-center text-sm text-[var(--ink-muted)]">
+                  Start with Step 1 and click Search cases.
                 </li>
               ) : null}
 
               {casesQuery.data?.results.map((item) => {
-                const selected = item.id === activeCase?.id;
+                const isSelected = item.id === manualCaseId;
                 return (
                   <li key={item.id}>
-                    <button
-                      type="button"
-                      onClick={() => setManualCaseId(item.id)}
-                      className={`w-full px-5 py-4 text-left outline-none transition ${
-                        selected
-                          ? "bg-[var(--surface-soft)] border-l-4 border-[var(--accent)]"
-                          : "bg-white hover:bg-[var(--surface)]"
-                      } focus:ring-2 focus:ring-inset focus:ring-[var(--accent-soft)]`}
-                      aria-pressed={selected}
+                    <div
+                      className={`w-full px-4 py-4 text-left transition ${
+                        isSelected ? "bg-[var(--surface-soft)]" : "bg-white hover:bg-[var(--surface)]"
+                      }`}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-[var(--ink)] leading-tight">
-                            {item.caseName || "Untitled Case"}
-                          </p>
-                          <div className="mt-1 flex flex-wrap items-center gap-1 text-xs text-[var(--ink-muted)]">
-                            <span>{item.court || "Unknown Court"}</span>
-                            {item.docketNumber && (
-                              <>
-                                <span>•</span>
-                                <span>Docket {item.docketNumber}</span>
-                              </>
-                            )}
-                            {item.dateFiled && (
-                              <>
-                                <span>•</span>
-                                <span>{formatDate(item.dateFiled)}</span>
-                              </>
-                            )}
-                          </div>
-                          {item.weakLabel &&
-                            item.noncomplianceScore !== undefined && (
-                              <div className="mt-1 flex items-center gap-2">
-                                <span
-                                  className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                                    item.weakLabel === "HIGH_RISK"
-                                      ? "bg-red-100 text-red-800"
-                                      : item.weakLabel === "MEDIUM_RISK"
-                                        ? "bg-yellow-100 text-yellow-800"
-                                        : "bg-green-100 text-green-800"
-                                  }`}
-                                >
-                                  {item.weakLabel}
-                                </span>
-                                <span className="text-xs text-[var(--ink-muted)]">
-                                  Score:{" "}
-                                  {(item.noncomplianceScore * 100).toFixed(1)}%
-                                </span>
-                              </div>
-                            )}
-                        </div>
-                        {selected && (
-                          <div className="ml-3 flex-shrink-0">
-                            <svg
-                              className="h-4 w-4 text-[var(--accent)]"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          </div>
-                        )}
-                      </div>
-                      <p className="mt-2 text-sm text-[var(--ink-soft)] line-clamp-2">
-                        {item.snippet || "No preview available."}
+                      <p className="text-sm font-semibold text-[var(--ink)]">{item.caseName || "Untitled case"}</p>
+                      <p className="mt-1 text-xs text-[var(--ink-muted)]">
+                        {item.court || "Unknown Court"}
+                        {item.docketNumber ? ` • Docket ${item.docketNumber}` : ""}
+                        {item.dateFiled ? ` • ${formatDate(item.dateFiled)}` : ""}
                       </p>
-                    </button>
+                      <p className="mt-2 text-sm text-[var(--ink-soft)]">{item.snippet || "No preview available."}</p>
+                      <div className="mt-3">
+                        <button
+                          type="button"
+                          onClick={() => handleSelectCase(item.id)}
+                          aria-pressed={isSelected}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[var(--accent-soft)] ${
+                            isSelected
+                              ? "bg-[var(--accent)] text-white"
+                              : "border border-[var(--line-strong)] text-[var(--ink)] hover:bg-[var(--surface-soft)]"
+                          }`}
+                        >
+                          {isSelected ? "Selected" : "Select this case"}
+                        </button>
+                      </div>
+                    </div>
                   </li>
                 );
               })}
             </ul>
           </div>
 
-          <article className="rounded-xl border border-[var(--line)] bg-white shadow-[var(--card-shadow)]">
-            <div className="border-b border-[var(--line)] px-5 py-4">
-              <h3 className="font-serif text-lg font-semibold text-[var(--ink)]">
-                Document viewer
-              </h3>
-              <p className="mt-1 text-sm text-[var(--ink-muted)]">
-                Structured metadata and filing text in one reading pane.
-              </p>
-            </div>
-
+          <div className="mt-5">
             {activeCase ? (
-              <div className="space-y-5 px-5 py-5">
-                <dl className="grid grid-cols-1 gap-3 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              <article className="mx-auto max-w-4xl rounded-2xl border-2 border-[var(--accent)] bg-gradient-to-b from-white to-[var(--surface)] p-6 shadow-[0_12px_40px_rgba(31,111,235,0.16)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
+                  Selected Case
+                </p>
+                <h3 className="mt-2 font-serif text-2xl font-semibold text-[var(--ink)]">
+                  {activeCase.caseName || "Untitled case"}
+                </h3>
+                <dl className="mt-4 grid grid-cols-1 gap-3 rounded-xl border border-[var(--line)] bg-white p-4 sm:grid-cols-2 lg:grid-cols-4">
                   <div>
-                    <dt className="text-xs uppercase tracking-wide text-[var(--ink-muted)]">
-                      Case
-                    </dt>
-                    <dd className="mt-1 text-sm font-medium text-[var(--ink)] break-words">
-                      {activeCase.caseName || "N/A"}
+                    <dt className="text-xs uppercase tracking-wide text-[var(--ink-muted)]">Docket</dt>
+                    <dd className="mt-1 text-sm font-medium text-[var(--ink)]">{activeCase.docketNumber || "N/A"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-[var(--ink-muted)]">Court</dt>
+                    <dd className="mt-1 text-sm font-medium text-[var(--ink)]">
+                      {activeCase.absoluteUrl ? (
+                        <a
+                          href={activeCase.absoluteUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[var(--accent)] underline decoration-[var(--accent-soft)] underline-offset-2 hover:text-[var(--ink-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
+                        >
+                          CourtListener
+                        </a>
+                      ) : (
+                        activeCase.court || "N/A"
+                      )}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs uppercase tracking-wide text-[var(--ink-muted)]">
-                      Docket
-                    </dt>
-                    <dd className="mt-1 text-sm font-medium text-[var(--ink)]">
-                      {activeCase.docketNumber || "N/A"}
-                    </dd>
+                    <dt className="text-xs uppercase tracking-wide text-[var(--ink-muted)]">Filed</dt>
+                    <dd className="mt-1 text-sm font-medium text-[var(--ink)]">{formatDate(activeCase.dateFiled)}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs uppercase tracking-wide text-[var(--ink-muted)]">
-                      Court
-                    </dt>
-                    <dd className="mt-1 text-sm font-medium text-[var(--ink)]">
-                      {activeCase.court || "N/A"}
-                    </dd>
+                    <dt className="text-xs uppercase tracking-wide text-[var(--ink-muted)]">Status</dt>
+                    <dd className="mt-1 text-sm font-medium text-[var(--ink)]">{activeCase.status || "N/A"}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs uppercase tracking-wide text-[var(--ink-muted)]">
-                      Filed
-                    </dt>
+                    <dt className="text-xs uppercase tracking-wide text-[var(--ink-muted)]">Docket ID</dt>
                     <dd className="mt-1 text-sm font-medium text-[var(--ink)]">
-                      {formatDate(activeCase.dateFiled)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs uppercase tracking-wide text-[var(--ink-muted)]">
-                      Status
-                    </dt>
-                    <dd className="mt-1 text-sm font-medium text-[var(--ink)]">
-                      {activeCase.status ?? "N/A"}
+                      {selectedDocketId ?? "N/A"}
                     </dd>
                   </div>
                 </dl>
 
-                {(activeCase.weakLabel ||
-                  activeCase.noncomplianceScore !== undefined) && (
-                  <div className="rounded-lg border border-[var(--line)] bg-white p-4">
-                    <h4 className="text-sm font-semibold text-[var(--ink)] mb-3">
-                      ML Classification Results
-                    </h4>
-                    <div className="flex flex-wrap items-center gap-4">
-                      {activeCase.weakLabel && (
-                        <div>
-                          <span className="text-xs uppercase tracking-wide text-[var(--ink-muted)] block">
-                            Risk Level
-                          </span>
-                          <span
-                            className={`inline-block mt-1 px-3 py-1 rounded-md text-sm font-medium ${
-                              activeCase.weakLabel === "HIGH_RISK"
-                                ? "bg-red-100 text-red-800 border border-red-200"
-                                : activeCase.weakLabel === "MEDIUM_RISK"
-                                  ? "bg-yellow-100 text-yellow-800 border border-yellow-200"
-                                  : "bg-green-100 text-green-800 border border-green-200"
-                            }`}
-                          >
-                            {activeCase.weakLabel.replace("_", " ")}
-                          </span>
-                        </div>
-                      )}
-                      {activeCase.noncomplianceScore !== undefined && (
-                        <div>
-                          <span className="text-xs uppercase tracking-wide text-[var(--ink-muted)] block">
-                            Noncompliance Score
-                          </span>
-                          <span className="text-sm font-semibold text-[var(--ink)] mt-1 block">
-                            {(activeCase.noncomplianceScore * 100).toFixed(1)}%
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
+                {(analysisMutation.isPending || analysisMutation.data || analysisMutation.isError) ? (
+                  <section className="mt-4 rounded-xl border border-[var(--line)] bg-white p-4">
+                    <h4 className="text-sm font-semibold text-[var(--ink)]">Model prediction</h4>
+                    {analysisMutation.isPending ? (
+                      <p className="mt-2 text-sm text-[var(--ink-muted)]">
+                        Running classifier on docket-entry plain text...
+                      </p>
+                    ) : null}
+                    {analysisMutation.isError ? (
+                      <p className="mt-2 text-sm text-[var(--danger)]">
+                        {(analysisMutation.error as Error).message}
+                      </p>
+                    ) : null}
+                    {analysisMutation.data ? (
+                      <div className="mt-2 flex flex-wrap items-center gap-4">
+                        <span
+                          className={`inline-block rounded px-2 py-1 text-xs font-semibold ${
+                            analysisMutation.data.weakLabel === "HIGH_RISK"
+                              ? "bg-red-100 text-red-800"
+                              : analysisMutation.data.weakLabel === "MEDIUM_RISK"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-green-100 text-green-800"
+                          }`}
+                        >
+                          {analysisMutation.data.weakLabel.replace("_", " ")}
+                        </span>
+                        <span className="text-sm text-[var(--ink-soft)]">
+                          Score: {(analysisMutation.data.noncomplianceScore * 100).toFixed(1)}%
+                        </span>
+                        <span className="text-xs text-[var(--ink-muted)]">
+                          Source: {analysisMutation.data.classifierSource}
+                        </span>
+                      </div>
+                    ) : null}
+                  </section>
+                ) : null}
 
-                <section aria-labelledby="filing-content">
-                  <h4
-                    id="filing-content"
-                    className="text-sm font-semibold text-[var(--ink)]"
-                  >
+                <section aria-labelledby="filing-content" className="mt-4">
+                  <h4 id="filing-content" className="text-sm font-semibold text-[var(--ink)]">
                     Filing text (cleaned)
                   </h4>
-                  <p className="mt-2 rounded-lg border border-[var(--line)] bg-white p-4 text-sm leading-7 text-[var(--ink-soft)]">
-                    {activeCase.plainText}
+                  <p className="mt-2 rounded-xl border border-[var(--line)] bg-white p-4 text-sm leading-7 text-[var(--ink-soft)]">
+                    {analysisMutation.data?.plainText ?? activeCase.plainText}
                   </p>
                 </section>
 
@@ -504,89 +479,108 @@ export default function CleanViewPage() {
                     href={activeCase.absoluteUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex rounded-lg border border-[var(--line-strong)] px-3 py-2 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
+                    className="mt-4 inline-flex rounded-lg border border-[var(--line-strong)] px-3 py-2 text-sm font-semibold text-[var(--ink)] transition hover:bg-[var(--surface-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
                   >
                     Open in CourtListener
                   </a>
                 ) : null}
+
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={handleConfirmCaseSelection}
+                    disabled={
+                      !selectedDocketId ||
+                      (isCaseConfirmed && confirmedCaseId === activeCase.id)
+                    }
+                    className="rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--ink-soft)] disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
+                  >
+                    {isCaseConfirmed && confirmedCaseId === activeCase.id
+                      ? "Case confirmed"
+                      : "Confirm selected case"}
+                  </button>
+                  {!selectedDocketId ? (
+                    <p className="mt-2 text-xs text-[var(--ink-muted)]">
+                      Confirm is available after case selection.
+                    </p>
+                  ) : null}
+                </div>
+              </article>
+            ) : hasSearched && (casesQuery.data?.results?.length ?? 0) > 0 ? (
+              <div className="rounded-xl border border-dashed border-[var(--line-strong)] bg-[var(--surface)] p-6 text-center text-sm text-[var(--ink-muted)]">
+                Select one case from the list above to continue to summary.
               </div>
-            ) : (
-              <p className="px-5 py-8 text-sm text-[var(--ink-muted)]">
-                Select a case to inspect filing details.
-              </p>
-            )}
-          </article>
-        </section>
-
-        <aside
-          aria-labelledby="summary-sidebar"
-          className="h-fit rounded-xl border border-[var(--line)] bg-white p-5 shadow-[var(--card-shadow)]"
-        >
-          <h2
-            id="summary-sidebar"
-            className="font-serif text-lg font-semibold text-[var(--ink)]"
-          >
-            Summary Sidebar
-          </h2>
-          <p className="mt-1 text-sm text-[var(--ink-muted)]">
-            Generate plain-English legal summaries with explicit risk framing.
-          </p>
-
-          <div className="mt-4 space-y-3">
-            <label
-              htmlFor="summary-prompt"
-              className="block text-sm font-medium text-[var(--ink)]"
-            >
-              Summary focus
-            </label>
-            <textarea
-              id="summary-prompt"
-              value={promptHint}
-              onChange={(event) => setPromptHint(event.target.value)}
-              rows={4}
-              className="w-full resize-y rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
-            />
-
-            <button
-              type="button"
-              disabled={!activeCase || summaryMutation.isPending}
-              onClick={() => {
-                if (!activeCase) return;
-                summaryMutation.mutate({
-                  caseData: activeCase,
-                  customPrompt: promptHint,
-                });
-              }}
-              className="w-full rounded-lg bg-[var(--ink)] px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--ink-soft)] disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
-            >
-              {summaryMutation.isPending
-                ? "Generating summary..."
-                : "Generate plain-English summary"}
-            </button>
-          </div>
-
-          <div
-            className="mt-4 min-h-48 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4"
-            aria-live="polite"
-          >
-            {summaryMutation.isError ? (
-              <p className="text-sm text-[var(--danger)]">
-                {(summaryMutation.error as Error).message}
-              </p>
             ) : null}
-
-            {summaryMutation.data ? (
-              <p className="whitespace-pre-wrap text-sm leading-7 text-[var(--ink-soft)]">
-                {summaryMutation.data}
-              </p>
-            ) : (
-              <p className="text-sm leading-7 text-[var(--ink-muted)]">
-                Choose a case and run summary generation. The output emphasizes
-                posture, obligations, deadlines, and compliance risk.
-              </p>
-            )}
           </div>
-        </aside>
+        </StepCard>
+
+        {activeCase && isCaseConfirmed && confirmedCaseId === activeCase.id ? (
+          <StepCard
+            step="Step 3"
+            title="Read and summarize"
+            description="Generate a plain-English summary only after confirming the selected case."
+          >
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="summary-prompt" className="mb-1.5 block text-sm font-medium text-[var(--ink)]">
+                  Summary focus
+                </label>
+                <textarea
+                  id="summary-prompt"
+                  value={promptHint}
+                  onChange={(event) => setPromptHint(event.target.value)}
+                  rows={4}
+                  className="w-full resize-y rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
+                />
+              </div>
+
+              <button
+                type="button"
+                disabled={summaryMutation.isPending || analysisMutation.isPending}
+                onClick={() => {
+                  summaryMutation.mutate({
+                    caseData: {
+                      ...activeCase,
+                      plainText: analysisMutation.data?.plainText ?? activeCase.plainText,
+                      docketId: confirmedDocketId ?? undefined,
+                      noncomplianceScore:
+                        analysisMutation.data?.noncomplianceScore ??
+                        activeCase.noncomplianceScore,
+                      weakLabel:
+                        analysisMutation.data?.weakLabel ?? activeCase.weakLabel,
+                    },
+                    customPrompt: promptHint,
+                  });
+                }}
+                className="rounded-lg bg-[var(--ink)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--ink-soft)] disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
+              >
+                {summaryMutation.isPending
+                  ? "Generating summary..."
+                  : "Generate plain-English summary"}
+              </button>
+
+              <div className="min-h-48 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4" aria-live="polite">
+                {summaryMutation.isError ? (
+                  <p className="text-sm text-[var(--danger)]">{(summaryMutation.error as Error).message}</p>
+                ) : null}
+
+                {summaryMutation.data ? (
+                  <p className="whitespace-pre-wrap text-sm leading-7 text-[var(--ink-soft)]">
+                    {summaryMutation.data}
+                  </p>
+                ) : (
+                  <p className="text-sm leading-7 text-[var(--ink-muted)]">
+                    The summary appears here after generation.
+                  </p>
+                )}
+              </div>
+            </div>
+          </StepCard>
+        ) : activeCase ? (
+          <div className="rounded-xl border border-dashed border-[var(--line-strong)] bg-[var(--surface)] p-6 text-center text-sm text-[var(--ink-muted)]">
+            Confirm the selected case to continue to summary.
+          </div>
+        ) : null}
       </main>
     </div>
   );

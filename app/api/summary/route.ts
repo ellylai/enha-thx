@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
       caseName?: string;
       court?: string;
       docketNumber?: string;
+      docketId?: string;
       dateFiled?: string;
       plainText?: string;
       snippet?: string;
@@ -35,6 +36,7 @@ export async function POST(request: NextRequest) {
     `Case: ${body.caseData.caseName ?? "Unknown"}`,
     `Court: ${body.caseData.court ?? "Unknown"}`,
     `Docket: ${body.caseData.docketNumber ?? "Unknown"}`,
+    `Docket ID: ${body.caseData.docketId ?? "Unknown"}`,
     `Filed: ${body.caseData.dateFiled ?? "Unknown"}`,
     "",
     "Filing excerpt:",
