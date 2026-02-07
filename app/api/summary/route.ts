@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
-  
+
   const body = (await request.json()) as {
     caseData?: {
       caseName?: string;

@@ -83,12 +83,10 @@ def train_classifier_pipeline():
     # test_indices = labels for the 20% held-out data
     # demo_results = demo_task(classifier, testX, test_metadata)
 
-
-clf = joblib.load("noncompliance_classifier_v1.pkl")
-
-
 # new_case_embedding should be the (1, 768) vector from Legal-BERT
 def run_prediction(new_case_embedding):
+    clf = joblib.load("noncompliance_classifier_v1.pkl")
+    
     prediction = clf.predict(new_case_embedding)
     probability = clf.predict_proba(new_case_embedding)
 
