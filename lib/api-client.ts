@@ -60,6 +60,8 @@ export async function analyzeCase(docketId: string): Promise<CaseAnalysis> {
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    const errorBody = await response.json().catch(() => ({})); // Add this
+    console.error("DEBUG: CourtListener Error Body:", errorBody); // Add this
     throw new Error(payload?.error ?? "Case analysis failed");
   }
 
