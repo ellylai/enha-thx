@@ -19,7 +19,7 @@ def split_samples(
     """
     Splits data into 80% training/validation and 20% test sets.
     """
-    return train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+    return train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
 
 
 def classification_task(
@@ -51,7 +51,7 @@ def train_classifier_pipeline():
     # Load the embeddings generated in the previous step
     # (Assuming they were saved as positive_embeddings.npy and negative_embeddings.npy)
     pos_X = np.load("pos_refined_weak_labels_embeddings.npy")
-    neg_X = np.load("neg_refined_weak_labels_embeddings.npy")
+    neg_X = np.load("neg_refined_weak_labels_embeddings2.npy")
 
     # Create labels: 1 for positive (noncompliant), 0 for negative (compliant)
     pos_y = np.ones(pos_X.shape[0])
@@ -72,7 +72,7 @@ def train_classifier_pipeline():
     print(f"\nFinal Test Accuracy: {accuracy:.4f}")
 
     # Assume 'classifier' is your trained LogisticRegression object
-    model_filename = "noncompliance_classifier_v1.pkl"
+    model_filename = "noncompliance_classifier_v2.pkl"
 
     # Save the complete package
     joblib.dump(classifier, model_filename)
@@ -83,6 +83,19 @@ def train_classifier_pipeline():
     # test_indices = labels for the 20% held-out data
     # demo_results = demo_task(classifier, testX, test_metadata)
 
+
+clf = joblib.load("noncompliance_classifier_v1.pkl")
+
+
+# new_case_embedding should be the (1, 768) vector from Legal-BERT
+def run_prediction(new_case_embedding):
+    prediction = clf.predict(new_case_embedding)
+    probability = clf.predict_proba(new_case_embedding)
+
+    label = "NONCOMPLIANT" if prediction[0] == 1 else "COMPLIANT"
+    conf = probability[0][1] if prediction[0] == 1 else probability[0][0]
+
+    return f"Result: {label} ({conf:.2%% confidence})"
 
 if __name__ == "__main__":
     train_classifier_pipeline()
