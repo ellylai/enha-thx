@@ -53,10 +53,10 @@ export default function CleanViewPage() {
   const [filters, setFilters] = useState<CaseFilters>(defaultFilters);
   const [searchFilters, setSearchFilters] = useState<CaseFilters>(defaultFilters);
   const [manualCaseId, setManualCaseId] = useState<string | null>(null);
-  const [selectedDocketId, setSelectedDocketId] = useState<string | null>(null);
+  const [selectedDocketId, setSelectedDocketId] = useState<number | null>(null);
   const [isCaseConfirmed, setIsCaseConfirmed] = useState(false);
   const [confirmedCaseId, setConfirmedCaseId] = useState<string | null>(null);
-  const [confirmedDocketId, setConfirmedDocketId] = useState<string | null>(null);
+  const [confirmedDocketId, setConfirmedDocketId] = useState<number | null>(null);
   const [promptHint, setPromptHint] = useState(
     "Focus on procedural posture, obligations, and immediate risk.",
   );
@@ -121,9 +121,9 @@ export default function CleanViewPage() {
     analysisMutation.reset();
   }
 
-  function handleSelectCase(caseId: string) {
+  function handleSelectCase(caseId: string, docketId?: number) {
     setManualCaseId(caseId);
-    setSelectedDocketId(caseId);
+    setSelectedDocketId(docketId ?? null);
     setIsCaseConfirmed(false);
     setConfirmedCaseId(null);
     setConfirmedDocketId(null);
@@ -133,14 +133,14 @@ export default function CleanViewPage() {
   }
 
   function handleConfirmCaseSelection() {
-    if (!manualCaseId || !selectedDocketId) return;
+    if (!manualCaseId || selectedDocketId === null) return;
     setIsCaseConfirmed(true);
     setConfirmedCaseId(manualCaseId);
     setConfirmedDocketId(selectedDocketId);
     void printConfirmedDocketIdToTerminal(selectedDocketId);
   }
 
-  async function printConfirmedDocketIdToTerminal(docketId: string): Promise<void> {
+  async function printConfirmedDocketIdToTerminal(docketId: number): Promise<void> {
     await fetch("/api/debug-docket", {
       method: "POST",
       headers: {
@@ -363,7 +363,7 @@ export default function CleanViewPage() {
                       <div className="mt-3">
                         <button
                           type="button"
-                          onClick={() => handleSelectCase(item.id)}
+                          onClick={() => handleSelectCase(item.id, item.docketId)}
                           aria-pressed={isSelected}
                           className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[var(--accent-soft)] ${
                             isSelected

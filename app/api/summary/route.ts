@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       caseName?: string;
       court?: string;
       docketNumber?: string;
-      docketId?: string;
+      docketId?: number;
       dateFiled?: string;
       plainText?: string;
       snippet?: string;

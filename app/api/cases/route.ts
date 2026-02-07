@@ -146,6 +146,15 @@ export async function GET(request: NextRequest) {
           console.error("ML classification failed:", err);
         }
 
+        const numericDocketIdCandidate =
+          item.id ?? item.docket_id ?? item.docketId ?? null;
+        const docketId =
+          typeof numericDocketIdCandidate === "number"
+            ? numericDocketIdCandidate
+            : Number.isFinite(Number(numericDocketIdCandidate))
+              ? Number(numericDocketIdCandidate)
+              : undefined;
+
         return {
           id: String(item.id ?? crypto.randomUUID()),
           caseName: caseName || "Untitled",
@@ -159,7 +168,7 @@ export async function GET(request: NextRequest) {
           plainText: cleanedSnippet || "No text",
           noncomplianceScore: mlResults.score,
           weakLabel: mlResults.label,
-          docketId: String(item.id ?? ""),
+          docketId,
         };
       }),
     );

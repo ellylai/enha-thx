@@ -19,7 +19,7 @@ export type CourtCase = {
   absoluteUrl?: string;
   snippet: string;
   plainText: string;
-  docketId?: string;
+  docketId?: number;
   // ML classification results
   noncomplianceScore?: number;
   weakLabel?: string;
