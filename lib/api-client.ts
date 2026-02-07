@@ -1,4 +1,9 @@
-import type { CaseFilters, CasesResponse, CourtCase } from "@/lib/types";
+import type {
+  CaseAnalysis,
+  CaseFilters,
+  CasesResponse,
+  CourtCase,
+} from "@/lib/types";
 
 export async function fetchCases(filters: CaseFilters): Promise<CasesResponse> {
   const params = new URLSearchParams();
@@ -44,4 +49,23 @@ export async function generateSummary(input: {
 
   const data = (await response.json()) as { summary: string };
   return data.summary;
+}
+
+export async function analyzeCase(docketId: string): Promise<CaseAnalysis> {
+  const response = await fetch("/api/case-analysis", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ docketId }),
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as
+      | { error?: string }
+      | null;
+    throw new Error(payload?.error ?? "Case analysis failed");
+  }
+
+  return (await response.json()) as CaseAnalysis;
 }

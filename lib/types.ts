@@ -19,6 +19,7 @@ export type CourtCase = {
   absoluteUrl?: string;
   snippet: string;
   plainText: string;
+  docketId?: string;
   // ML classification results
   noncomplianceScore?: number;
   weakLabel?: string;
@@ -28,4 +29,12 @@ export type CasesResponse = {
   results: CourtCase[];
   total: number;
   source: "live" | "fallback";
+};
+
+export type CaseAnalysis = {
+  plainText: string;
+  noncomplianceScore: number;
+  weakLabel: "HIGH_RISK" | "MEDIUM_RISK" | "LOW_RISK";
+  classifierSource: "external" | "heuristic";
+  selectedDocketEntryId: string | null;
 };

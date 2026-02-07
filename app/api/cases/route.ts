@@ -47,71 +47,29 @@ export async function GET(request: NextRequest) {
       results?: Array<Record<string, unknown>>;
     };
 
-    const results: CourtCase[] = await Promise.all(
-      (data.results ?? []).map(async (item) => {
-        const docketNumber = String(item.docket_number ?? "");
-        const caseName = String(item.case_name ?? "");
-        // Extract judge if available in the CourtListener item structure
-        const judgeName = String(item.assigned_to ?? "");
-        const courtName = String(
-          item.court ?? item.court_id ?? "Unknown Court",
-        );
-        const textSnippet = String(
-          item.snippet ??
-            item.summary ??
-            item.nature_of_suit ??
-            "No preview available.",
-        );
-        const cleanedSnippet = textSnippet
-          .replace(/<[^>]*>/g, " ")
-          .replace(/\s+/g, " ")
-          .trim();
+    const results: CourtCase[] = (data.results ?? []).map((item) => {
+      const textSnippet = String(
+        item.snippet ?? item.summary ?? item.nature_of_suit ?? "No preview available.",
+      );
+      const cleanedSnippet = textSnippet.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
-        let mlResults = { score: 0, label: "UNKNOWN" };
-
-        try {
-          // Call the local Vercel Python API
-          const classifierRes = await fetch(
-            `${process.env.NEXT_PUBLIC_SITE_URL}/api/classify`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                case_number: docketNumber,
-                case_name: caseName,
-                judge: judgeName,
-              }),
-            },
-          );
-
-          if (classifierRes.ok) {
-            const mlData = await classifierRes.json();
-            if (mlData.status === "success" && mlData.results.length > 0) {
-              mlResults = {
-                score: mlData.results[0].noncomplianceScore,
-                label: mlData.results[0].weakLabel,
-              };
-            }
-          }
-        } catch (err) {
-          console.error("Inference lookup failed", err);
-        }
-
-        return {
-          id: String(item.id ?? crypto.randomUUID()),
-          caseName: String(item.case_name ?? "Untitled"),
-          docketNumber: String(item.docket_number ?? ""),
-          court: String(item.court ?? "Unknown"), // Required
-          jurisdiction: String(item.jurisdiction ?? ""), // Required
-          dateFiled: String(item.date_filed ?? ""),
-          status: String(item.status ?? ""),
-          snippet: cleanedSnippet || "No snippet", // Required
-          plainText: cleanedSnippet || "No text", // Required
-          noncomplianceScore: mlResults.score,
-          weakLabel: mlResults.label,
-        };
-      }),
-    );
+      return {
+        id: String(item.id ?? crypto.randomUUID()),
+        caseName: String(item.case_name ?? "Untitled"),
+        docketNumber: String(item.docket_number ?? ""),
+        court: String(item.court ?? "Unknown"),
+        jurisdiction: String(item.jurisdiction ?? ""),
+        dateFiled: String(item.date_filed ?? ""),
+        status: String(item.status ?? ""),
+        absoluteUrl: item.absolute_url
+          ? String(item.absolute_url).startsWith("http")
+            ? String(item.absolute_url)
+            : `https://www.courtlistener.com${String(item.absolute_url)}`
+          : undefined,
+        snippet: cleanedSnippet || "No snippet",
+        plainText: cleanedSnippet || "No text",
+      };
+    });
 
     const payload: CasesResponse = {
       results,
