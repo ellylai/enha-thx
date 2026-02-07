@@ -1,0 +1,506 @@
+[
+  {
+    "case_number": "25-CV-4722",
+    "case_name": "Hakan K. v. Noem, et al.",
+    "judges": "JMB/DTS",
+    "year": 2025,
+    "docket_number": "4722"
+  },
+  {
+    "case_number": "25-CV-4741",
+    "case_name": "Luis L.P. v. Brott, et al.",
+    "judges": "NEB/DJF",
+    "year": 2025,
+    "docket_number": "4741"
+  },
+  {
+    "case_number": "25-CV-4776",
+    "case_name": "Ahmed A. v. Pamela Bondi, et al.",
+    "judges": "JWB/DJF",
+    "year": 2025,
+    "docket_number": "4776"
+  },
+  {
+    "case_number": "26-CV-080",
+    "case_name": "Francisco E.O. v. Olson, et al.",
+    "judges": "JRT/DJF",
+    "year": 2026,
+    "docket_number": "080"
+  },
+  {
+    "case_number": "26-CV-013",
+    "case_name": "Suhaib M. v. Kristi Noem, et al.",
+    "judges": "JWB/DJF",
+    "year": 2026,
+    "docket_number": "013"
+  },
+  {
+    "case_number": "26-CV-031",
+    "case_name": "Alex V.Y.L. v. Pamela Bondi, et al.",
+    "judges": "JWB/DJF",
+    "year": 2026,
+    "docket_number": "031"
+  },
+  {
+    "case_number": "26-CV-106",
+    "case_name": "Marlon M.M. v. Easterwood, et al.",
+    "judges": "NEB/ECW",
+    "year": 2026,
+    "docket_number": "106"
+  },
+  {
+    "case_number": "26-CV-0107",
+    "case_name": "Juan T.R. v. Noem, et al.",
+    "judges": "PJS/DLM",
+    "year": 2026,
+    "docket_number": "0107"
+  },
+  {
+    "case_number": "26-CV-130",
+    "case_name": "Botir B. v. Bondi, et al.",
+    "judges": "LMP/DJF",
+    "year": 2026,
+    "docket_number": "130"
+  },
+  {
+    "case_number": "26-CV-138",
+    "case_name": "Lide E.G.Q. v. Executive Office for Immigration Review, et al.",
+    "judges": "JWB/JFD",
+    "year": 2026,
+    "docket_number": "138"
+  },
+  {
+    "case_number": "26-CV-00146",
+    "case_name": "Jhony A. v. Bondi, et al.",
+    "judges": "JMB/LIB",
+    "year": 2026,
+    "docket_number": "00146"
+  },
+  {
+    "case_number": "26-CV-150",
+    "case_name": "Christopher A.F.E. v. Pamela Bondi, et al.",
+    "judges": "JWB/ECW",
+    "year": 2026,
+    "docket_number": "150"
+  },
+  {
+    "case_number": "26-CV-156",
+    "case_name": "Evelin M.A. v. Bondi, et al.",
+    "judges": "NEB/DLM",
+    "year": 2026,
+    "docket_number": "156"
+  },
+  {
+    "case_number": "26-CV-160",
+    "case_name": "Jose A. v. Bondi, et al.",
+    "judges": "NEB/EMB",
+    "year": 2026,
+    "docket_number": "160"
+  },
+  {
+    "case_number": "26-CV-00161",
+    "case_name": "Pascual G. v. Bondi, et al.",
+    "judges": "JMB/LIB",
+    "year": 2026,
+    "docket_number": "00161"
+  },
+  {
+    "case_number": "26-CV-164",
+    "case_name": "Santiago A.C.P. v. Todd Lyons, et al.",
+    "judges": "JWB/DTS",
+    "year": 2026,
+    "docket_number": "164"
+  },
+  {
+    "case_number": "26-CV-166",
+    "case_name": "Andrei C. v. Lyons, et al.",
+    "judges": "SRN/ECW",
+    "year": 2026,
+    "docket_number": "166"
+  },
+  {
+    "case_number": "26-CV-167",
+    "case_name": "Oscar O.T. v. Pamela Bondi, et al.",
+    "judges": "JWB/JFD",
+    "year": 2026,
+    "docket_number": "167"
+  },
+  {
+    "case_number": "26-CV-00168",
+    "case_name": "Martin R. v. Bondi, et al.",
+    "judges": "JMB/LIB",
+    "year": 2026,
+    "docket_number": "00168"
+  },
+  {
+    "case_number": "26-CV-00208",
+    "case_name": "Abdi W. v. Trump, et al.",
+    "judges": "KMM/SGE",
+    "year": 2026,
+    "docket_number": "00208"
+  },
+  {
+    "case_number": "26-CV-213",
+    "case_name": "Adriana M.Y.M. v. David Easterwood, et al.",
+    "judges": "JWB/JFD",
+    "year": 2026,
+    "docket_number": "213"
+  },
+  {
+    "case_number": "26-CV-216",
+    "case_name": "Estefany J.S. v. Pamela Bondi, et al.",
+    "judges": "JWB/SGE",
+    "year": 2026,
+    "docket_number": "216"
+  },
+  {
+    "case_number": "26-CV-231",
+    "case_name": "Martha S.S. v. Kristi Noem, et al.",
+    "judges": "JWB/DLM",
+    "year": 2026,
+    "docket_number": "231"
+  },
+  {
+    "case_number": "26-CV-233",
+    "case_name": "Joaquin Q. L. v. Bondi, et al.",
+    "judges": "LMP/DTS",
+    "year": 2026,
+    "docket_number": "233"
+  },
+  {
+    "case_number": "26-CV-244",
+    "case_name": "Jose L.C.C. v. Pamela Bondi, et al.",
+    "judges": "JWB/DTS",
+    "year": 2026,
+    "docket_number": "244"
+  },
+  {
+    "case_number": "26-CV-252",
+    "case_name": "Juan R. v. Bondi, et al.",
+    "judges": "SRN/DTS",
+    "year": 2026,
+    "docket_number": "252"
+  },
+  {
+    "case_number": "26-CV-261",
+    "case_name": "Jesus A.P. v. Bondi, et al.",
+    "judges": "PJS/EMB",
+    "year": 2026,
+    "docket_number": "261"
+  },
+  {
+    "case_number": "26-CV-272",
+    "case_name": "Abdiqadir A. v. Bondi, et al.",
+    "judges": "JMB/DTS",
+    "year": 2026,
+    "docket_number": "272"
+  },
+  {
+    "case_number": "26-CV-276",
+    "case_name": "Bashir Ali K. v. Noem, et al.",
+    "judges": "LMP/DTS",
+    "year": 2026,
+    "docket_number": "276"
+  },
+  {
+    "case_number": "26-CV-282",
+    "case_name": "Roman N. v. Donald Trump, et al.",
+    "judges": "JWB/DLM",
+    "year": 2026,
+    "docket_number": "282"
+  },
+  {
+    "case_number": "26-CV-00283",
+    "case_name": "Sandra C. v. Bondi, et al.",
+    "judges": "JMB/JFD",
+    "year": 2026,
+    "docket_number": "00283"
+  },
+  {
+    "case_number": "26-CV-296",
+    "case_name": "Yeylin C.R. v. Bondi, et al.",
+    "judges": "NEB/LIB",
+    "year": 2026,
+    "docket_number": "296"
+  },
+  {
+    "case_number": "26-CV-301",
+    "case_name": "Liban G. v. Noem, et al.",
+    "judges": "SRN/ECW",
+    "year": 2026,
+    "docket_number": "301"
+  },
+  {
+    "case_number": "26-CV-0309",
+    "case_name": "Joseph T.M. v. Bondi, et al.",
+    "judges": "PJS/EMB",
+    "year": 2026,
+    "docket_number": "0309"
+  },
+  {
+    "case_number": "26-CV-312",
+    "case_name": "Obildzhon E. v. Pamela Bondi, et al.",
+    "judges": "JWB/DTS",
+    "year": 2026,
+    "docket_number": "312"
+  },
+  {
+    "case_number": "26-CV-313",
+    "case_name": "Corina E. v. Pamela Bondi, et al.",
+    "judges": "JWB/DTS",
+    "year": 2026,
+    "docket_number": "313"
+  },
+  {
+    "case_number": "26-CV-314",
+    "case_name": "E.E. v. Pamela Bondi, et al.",
+    "judges": "JWB/DTS",
+    "year": 2026,
+    "docket_number": "314"
+  },
+  {
+    "case_number": "26-CV-316",
+    "case_name": "Manolo Z. L. v. Trump, et al.",
+    "judges": "LMP/DTS",
+    "year": 2026,
+    "docket_number": "316"
+  },
+  {
+    "case_number": "26-CV-317",
+    "case_name": "William L.-C. v. Bondi, et al.",
+    "judges": "NEB/JFD",
+    "year": 2026,
+    "docket_number": "317"
+  },
+  {
+    "case_number": "26-CV-319",
+    "case_name": "Diana L.-C. v. Bondi, et al.",
+    "judges": "NEB/JFD",
+    "year": 2026,
+    "docket_number": "319"
+  },
+  {
+    "case_number": "26-CV-328",
+    "case_name": "Felix J.C.A. v. Pamela Bondi, et al.",
+    "judges": "JWB/DLM",
+    "year": 2026,
+    "docket_number": "328"
+  },
+  {
+    "case_number": "26-CV-00351",
+    "case_name": "Ihor D. v. Noem, et al.",
+    "judges": "JMB/DTS",
+    "year": 2026,
+    "docket_number": "00351"
+  },
+  {
+    "case_number": "26-CV-369",
+    "case_name": "Francisco M. v. Bondi, et al.",
+    "judges": "JMB/EMB",
+    "year": 2026,
+    "docket_number": "369"
+  },
+  {
+    "case_number": "26-CV-0380",
+    "case_name": "Alberto C.M. v. Noem, et al.",
+    "judges": "DWF/SGE",
+    "year": 2026,
+    "docket_number": "0380"
+  },
+  {
+    "case_number": "26-CV-396",
+    "case_name": "Josue David P. A. v. Bondi, et al.",
+    "judges": "LMP/JFD",
+    "year": 2026,
+    "docket_number": "396"
+  },
+  {
+    "case_number": "26-CV-00404",
+    "case_name": "Nadejda P. v. Lyons, et al.",
+    "judges": "KMM/DLM",
+    "year": 2026,
+    "docket_number": "00404"
+  },
+  {
+    "case_number": "26-CV-410",
+    "case_name": "Paula G. v. Bondi, et al.",
+    "judges": "JMB/DLM",
+    "year": 2026,
+    "docket_number": "410"
+  },
+  {
+    "case_number": "26-CV-423",
+    "case_name": "Ronnie C. v. Pamela Bondi, et al.",
+    "judges": "JWB/JFD",
+    "year": 2026,
+    "docket_number": "423"
+  },
+  {
+    "case_number": "26-CV-0424",
+    "case_name": "J.B.C.O. et al., v. Bondi, et al.",
+    "judges": "JRT/DJF",
+    "year": 2026,
+    "docket_number": "0424"
+  },
+  {
+    "case_number": "26-CV-436",
+    "case_name": "Silvestre R. C. v. Bondi, et al.",
+    "judges": "LMP/JFD",
+    "year": 2026,
+    "docket_number": "436"
+  },
+  {
+    "case_number": "26-CV-437",
+    "case_name": "Darvin M. v. Bondi, et al.",
+    "judges": "SRN/EMB",
+    "year": 2026,
+    "docket_number": "437"
+  },
+  {
+    "case_number": "26-CV-439",
+    "case_name": "Maria U.C.G. v. Pamela Bondi, et al.",
+    "judges": "JWB/LIB",
+    "year": 2026,
+    "docket_number": "439"
+  },
+  {
+    "case_number": "26-CV-00440",
+    "case_name": "Abdirahman S. v. Bondi, et al.",
+    "judges": "JMB/DJF",
+    "year": 2026,
+    "docket_number": "00440"
+  },
+  {
+    "case_number": "26-CV-00444",
+    "case_name": "Enrique L. v. Bondi, et al.",
+    "judges": "JMB/SGE",
+    "year": 2026,
+    "docket_number": "00444"
+  },
+  {
+    "case_number": "26-CV-0445",
+    "case_name": "Fernando T. v. Noem, et al.",
+    "judges": "ECT/EMB",
+    "year": 2026,
+    "docket_number": "0445"
+  },
+  {
+    "case_number": "26-CV-447",
+    "case_name": "Alexis D.A.M. v. Bondi, et al.",
+    "judges": "JRT/ECW",
+    "year": 2026,
+    "docket_number": "447"
+  },
+  {
+    "case_number": "26-CV-449",
+    "case_name": "Hector T.G. v. Bondi, et al.",
+    "judges": "NEB/LIB",
+    "year": 2026,
+    "docket_number": "449"
+  },
+  {
+    "case_number": "26-CV-454",
+    "case_name": "Luis S. v. Bondi, et al.",
+    "judges": "ECT/LIB",
+    "year": 2026,
+    "docket_number": "454"
+  },
+  {
+    "case_number": "26-CV-457",
+    "case_name": "Sonia M.M.C. v. Pamela Bondi, et al.",
+    "judges": "JWB/LIB",
+    "year": 2026,
+    "docket_number": "457"
+  },
+  {
+    "case_number": "26-CV-00480",
+    "case_name": "Jose A. v. Noem, et al.",
+    "judges": "JMB/ECW",
+    "year": 2026,
+    "docket_number": "00480"
+  },
+  {
+    "case_number": "26-CV-485",
+    "case_name": "Ivan R. v. Pamela Bondi, et al.",
+    "judges": "JWB/EMB",
+    "year": 2026,
+    "docket_number": "485"
+  },
+  {
+    "case_number": "26-CV-489",
+    "case_name": "Yosber I.M.C. v. Bondi, et al.",
+    "judges": "JRT/DLM",
+    "year": 2026,
+    "docket_number": "489"
+  },
+  {
+    "case_number": "26-CV-493",
+    "case_name": "Fabian L.C. v. Bondi, et al.",
+    "judges": "NEB/DLM",
+    "year": 2026,
+    "docket_number": "493"
+  },
+  {
+    "case_number": "26-CV-00504",
+    "case_name": "Maria P. v. Brott, et al.",
+    "judges": "JMB/JFD",
+    "year": 2026,
+    "docket_number": "00504"
+  },
+  {
+    "case_number": "26-CV-517",
+    "case_name": "Brayan M.O. v. Bondi, et al.",
+    "judges": "NEB/JFD",
+    "year": 2026,
+    "docket_number": "517"
+  },
+  {
+    "case_number": "26-CV-00537",
+    "case_name": "Isidro L. v. Lyons, et al.",
+    "judges": "JMB/DLM",
+    "year": 2026,
+    "docket_number": "00537"
+  },
+  {
+    "case_number": "26-CV-546",
+    "case_name": "Maria V.H., et al., v. Bondi, et al.",
+    "judges": "JMG/DLM",
+    "year": 2026,
+    "docket_number": "546"
+  },
+  {
+    "case_number": "26-CV-00561",
+    "case_name": "Elvis T. E., et al. v. Bondi, et al.",
+    "judges": "KMM/JFD",
+    "year": 2026,
+    "docket_number": "00561"
+  },
+  {
+    "case_number": "26-CV-0575",
+    "case_name": "Guled O. v. Noem, et al.",
+    "judges": "ADM/DJF",
+    "year": 2026,
+    "docket_number": "0575"
+  },
+  {
+    "case_number": "26-CV-00580",
+    "case_name": "Carlos A. G. v. Bondi, et al.",
+    "judges": "SRB-DJF",
+    "year": 2026,
+    "docket_number": "00580"
+  },
+  {
+    "case_number": "26-CV-597",
+    "case_name": "Jose V. v. Easterwood, et al.",
+    "judges": "DSD/LIB",
+    "year": 2026,
+    "docket_number": "597"
+  },
+  {
+    "case_number": "26-CV-00663",
+    "case_name": "Marco Q. v. Noem, et al.",
+    "judges": "SRB-DLM",
+    "year": 2026,
+    "docket_number": "00663"
+  }
+]
