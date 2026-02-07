@@ -65,6 +65,7 @@ export default function CleanViewPage() {
   );
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showSearchHelp, setShowSearchHelp] = useState(false);
+  const [isSearchSubmitting, setIsSearchSubmitting] = useState(false);
 
   const casesQuery = useQuery({
     queryKey: ["courtlistener-cases", searchFilters],
@@ -86,6 +87,7 @@ export default function CleanViewPage() {
     casesQuery.isFetching ||
     !!casesQuery.data ||
     !!casesQuery.error;
+  const isSearchBusy = isSearchSubmitting || casesQuery.isFetching;
 
   const activeCase = useMemo(() => {
     if (!manualCaseId) return null;
@@ -100,7 +102,10 @@ export default function CleanViewPage() {
     setFilters((prev) => ({ ...prev, [key]: value }));
   }
 
-  function handleSearch() {
+  async function handleSearch() {
+    if (isSearchBusy) return;
+
+    setIsSearchSubmitting(true);
     setSearchFilters({ ...filters });
     setStage("select");
     setManualCaseId(null);
@@ -110,7 +115,11 @@ export default function CleanViewPage() {
     setConfirmedDocketId(null);
     summaryMutation.reset();
     analysisMutation.reset();
-    void casesQuery.refetch();
+    try {
+      await casesQuery.refetch();
+    } finally {
+      setIsSearchSubmitting(false);
+    }
   }
 
   function handleReset() {
@@ -161,7 +170,7 @@ export default function CleanViewPage() {
   function handleSearchKeyDown(event: React.KeyboardEvent<HTMLFormElement>) {
     if (event.key !== "Enter") return;
     event.preventDefault();
-    handleSearch();
+    void handleSearch();
   }
 
   function handleStartCaseReview() {
@@ -259,10 +268,11 @@ export default function CleanViewPage() {
               <form
                 onSubmit={(event) => {
                   event.preventDefault();
-                  handleSearch();
+                  void handleSearch();
                 }}
                 onKeyDown={handleSearchKeyDown}
                 className="space-y-4"
+                aria-busy={isSearchBusy}
               >
             <div className="flex flex-col gap-3 sm:flex-row">
               <div className="flex-1">
@@ -302,6 +312,7 @@ export default function CleanViewPage() {
                   name="query"
                   value={filters.q}
                   onChange={(event) => onFilterChange("q", event.target.value)}
+                  disabled={isSearchBusy}
                   className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2.5 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
                   placeholder="e.g. order to show cause"
                 />
@@ -309,16 +320,17 @@ export default function CleanViewPage() {
               <div className="flex items-end">
                 <button
                   type="submit"
-                  disabled={casesQuery.isFetching}
+                  disabled={isSearchBusy}
                   className="w-full rounded-lg bg-[var(--ink)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--ink-soft)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                 >
-                  {casesQuery.isFetching ? "Searching..." : "Search cases"}
+                  {isSearchBusy ? "Searching court records..." : "Search cases"}
                 </button>
               </div>
             </div>
 
             <button
               type="button"
+              disabled={isSearchBusy}
               onClick={() => setShowAdvanced((prev) => !prev)}
               aria-expanded={showAdvanced}
               aria-controls="advanced-filters"
@@ -338,6 +350,7 @@ export default function CleanViewPage() {
                     name="court"
                     value={filters.court}
                     onChange={(event) => onFilterChange("court", event.target.value)}
+                    disabled={isSearchBusy}
                     className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
                     placeholder="e.g. ca9, dmn"
                   />
@@ -351,6 +364,7 @@ export default function CleanViewPage() {
                     name="docket-number"
                     value={filters.docketNumber}
                     onChange={(event) => onFilterChange("docketNumber", event.target.value)}
+                    disabled={isSearchBusy}
                     className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
                     placeholder="e.g. 1:25-cv-00123"
                   />
@@ -364,6 +378,7 @@ export default function CleanViewPage() {
                     name="nature-of-suit"
                     value={filters.natureOfSuit}
                     onChange={(event) => onFilterChange("natureOfSuit", event.target.value)}
+                    disabled={isSearchBusy}
                     className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
                     placeholder="e.g. 463 (habeas corpus)"
                   />
@@ -379,6 +394,7 @@ export default function CleanViewPage() {
                       type="date"
                       value={filters.dateFiledAfter}
                       onChange={(event) => onFilterChange("dateFiledAfter", event.target.value)}
+                      disabled={isSearchBusy}
                       className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
                     />
                   </div>
@@ -392,6 +408,7 @@ export default function CleanViewPage() {
                       type="date"
                       value={filters.dateFiledBefore}
                       onChange={(event) => onFilterChange("dateFiledBefore", event.target.value)}
+                      disabled={isSearchBusy}
                       className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]"
                     />
                   </div>
@@ -402,6 +419,7 @@ export default function CleanViewPage() {
             <button
               type="button"
               onClick={handleReset}
+              disabled={isSearchBusy}
               className="rounded-lg border border-[var(--line-strong)] px-3 py-2 text-sm font-semibold text-[var(--ink)] transition hover:bg-[var(--surface-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
             >
               Reset search
@@ -415,10 +433,34 @@ export default function CleanViewPage() {
                 title="Select one case"
                 description="Pick a case from results to inspect details before generating a summary."
               >
+          {isSearchBusy ? (
+            <div
+              className="mb-4 rounded-xl border border-[var(--line-strong)] bg-[var(--surface)] px-4 py-4"
+              role="status"
+              aria-live="polite"
+            >
+              <div className="flex items-start gap-3">
+                <span
+                  className="mt-0.5 inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--line-strong)] border-t-[var(--ink)]"
+                  aria-hidden="true"
+                />
+                <div>
+                  <p className="text-sm font-semibold text-[var(--ink)]">Search in progress</p>
+                  <p className="mt-1 text-sm text-[var(--ink-soft)]">
+                    We are querying CourtListener and preparing a ranked case list for review.
+                  </p>
+                  <p className="mt-2 text-xs text-[var(--ink-muted)]">
+                    Next: results will appear below, then select one case to continue.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           <div className="rounded-xl border border-[var(--line)] bg-white">
             <div className="border-b border-[var(--line)] px-4 py-3">
               <p className="text-sm text-[var(--ink-muted)]" aria-live="polite">
-                {casesQuery.isFetching
+                {isSearchBusy
                   ? "Searching CourtListener..."
                   : casesQuery.data?.total
                     ? `${casesQuery.data.total} cases found`
