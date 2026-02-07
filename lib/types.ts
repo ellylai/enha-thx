@@ -17,6 +17,9 @@ export type CourtCase = {
   absoluteUrl?: string;
   snippet: string;
   plainText: string;
+  // can be outputted by our classifier later
+  noncomplianceScore?: number; 
+  weakLabel?: string;
 };
 
 export type CasesResponse = {
