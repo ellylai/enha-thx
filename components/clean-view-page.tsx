@@ -810,7 +810,7 @@ export default function CleanViewPage() {
                     type="button"
                     disabled={summaryMutation.isPending || analysisMutation.isPending}
                     onClick={() => {
-                      const caseData: Parameters<typeof summaryMutation.mutate>[0]["caseData"] = {
+                      const baseCaseData: Parameters<typeof summaryMutation.mutate>[0]["caseData"] = {
                         ...activeCase,
                         plainText: analysisMutation.data?.plainText ?? activeCase.plainText,
                         docketId: confirmedDocketId ?? undefined,
@@ -818,6 +818,8 @@ export default function CleanViewPage() {
                           analysisMutation.data?.noncomplianceScore ?? activeCase.noncomplianceScore,
                         weakLabel: analysisMutation.data?.weakLabel ?? activeCase.weakLabel,
                       };
+
+                      const caseData: any = { ...baseCaseData };
 
                       if (confirmedExtractedData) {
                         caseData.case_metadata = confirmedExtractedData.case_metadata;
