@@ -70,6 +70,7 @@ function heuristicClassifier(
   return {
     noncomplianceScore: normalized,
     weakLabel,
+    selectedDocketEntryId: null
   };
 }
 
@@ -195,6 +196,7 @@ async function externalClassifier(
   return {
     noncomplianceScore: Math.max(0, Math.min(payload.noncomplianceScore, 1)),
     weakLabel,
+    selectedDocketEntryId: null
   };
 }
 
