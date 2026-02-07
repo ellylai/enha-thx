@@ -38,3 +38,14 @@ export type CaseAnalysis = {
   classifierSource: "external" | "heuristic";
   selectedDocketEntryId: string | null;
 };
+
+export type DocketSaveResponse = {
+  success: boolean;
+  message?: string;
+  error?: string;
+  details?: string;
+  docketId: string;
+  caseName?: string;
+  totalEntries?: number;
+  filename?: string;
+};

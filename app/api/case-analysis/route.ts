@@ -35,20 +35,26 @@ function countMatches(regex: RegExp, text: string): number {
 
 function heuristicClassifier(
   text: string,
-): Omit<AnalysisResponse, "plainText" | "classifierSource"> {
+): Pick<AnalysisResponse, "noncomplianceScore" | "weakLabel"> {
   const lower = text.toLowerCase();
   let raw = 0;
 
   for (const pattern of problematicPhrases) {
     const hits = countMatches(pattern, lower);
     if (!hits) continue;
-    const severe = /(contempt|sanction|willful|violation)/i.test(pattern.source);
+    const severe = /(contempt|sanction|willful|violation)/i.test(
+      pattern.source,
+    );
     raw += hits * (severe ? 25 : 10);
   }
 
   const normalized = Math.min(raw / 200, 1);
   const weakLabel: AnalysisResponse["weakLabel"] =
-    normalized >= 0.6 ? "HIGH_RISK" : normalized >= 0.2 ? "MEDIUM_RISK" : "LOW_RISK";
+    normalized >= 0.6
+      ? "HIGH_RISK"
+      : normalized >= 0.2
+        ? "MEDIUM_RISK"
+        : "LOW_RISK";
 
   return {
     noncomplianceScore: normalized,
@@ -101,14 +107,19 @@ async function fetchDocketPlainText(docketId: string): Promise<{
     ordering: "-date_filed",
   });
 
-  const response = await fetch(`${BASE_URL}docket-entries/?${params.toString()}`, {
-    method: "GET",
-    headers,
-    cache: "no-store",
-  });
+  const response = await fetch(
+    `${BASE_URL}docket-entries/?${params.toString()}`,
+    {
+      method: "GET",
+      headers,
+      cache: "no-store",
+    },
+  );
 
   if (!response.ok) {
-    throw new Error(`CourtListener docket-entry fetch failed (${response.status})`);
+    throw new Error(
+      `CourtListener docket-entry fetch failed (${response.status})`,
+    );
   }
 
   const data = (await response.json()) as {
@@ -127,7 +138,9 @@ async function fetchDocketPlainText(docketId: string): Promise<{
   const deduped = Array.from(new Set(chunks));
   const fullText = deduped.join("\n\n").trim();
   if (!fullText) {
-    throw new Error("No plain_text available from CourtListener docket entries");
+    throw new Error(
+      "No plain_text available from CourtListener docket entries",
+    );
   }
 
   return {
@@ -138,7 +151,7 @@ async function fetchDocketPlainText(docketId: string): Promise<{
 
 async function externalClassifier(
   text: string,
-): Promise<Omit<AnalysisResponse, "plainText" | "classifierSource"> | null> {
+): Promise<Pick<AnalysisResponse, "noncomplianceScore" | "weakLabel"> | null> {
   const url = process.env.CLASSIFIER_API_URL;
   if (!url) return null;
 
@@ -181,7 +194,10 @@ export async function POST(request: NextRequest) {
     const docketId = body.docketId?.trim();
 
     if (!docketId) {
-      return NextResponse.json({ error: "docketId is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "docketId is required" },
+        { status: 400 },
+      );
     }
 
     const docketData = await fetchDocketPlainText(docketId);

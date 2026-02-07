@@ -3,19 +3,19 @@ import type {
   CaseFilters,
   CasesResponse,
   CourtCase,
+  DocketSaveResponse,
 } from "@/lib/types";
 
 export async function fetchCases(filters: CaseFilters): Promise<CasesResponse> {
   const params = new URLSearchParams();
 
-  if (filters.q.trim()) params.set("q", filters.q.trim());
+  const q = filters.q?.trim() ?? "";
+  if (q) params.set("q", q);
   if (filters.court) params.set("court", filters.court);
   if (filters.docketNumber) params.set("docketNumber", filters.docketNumber);
   if (filters.natureOfSuit) params.set("natureOfSuit", filters.natureOfSuit);
-  if (filters.dateFiledAfter)
-    params.set("dateFiledAfter", filters.dateFiledAfter);
-  if (filters.dateFiledBefore)
-    params.set("dateFiledBefore", filters.dateFiledBefore);
+  if (filters.dateFiledAfter) params.set("dateFiledAfter", filters.dateFiledAfter);
+  if (filters.dateFiledBefore) params.set("dateFiledBefore", filters.dateFiledBefore);
 
   const response = await fetch(`/api/cases?${params.toString()}`, {
     method: "GET",
@@ -41,9 +41,7 @@ export async function generateSummary(input: {
   });
 
   if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as {
-      error?: string;
-    } | null;
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
     throw new Error(payload?.error ?? "Summary generation failed");
   }
 
@@ -61,11 +59,26 @@ export async function analyzeCase(docketId: string): Promise<CaseAnalysis> {
   });
 
   if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as
-      | { error?: string }
-      | null;
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
     throw new Error(payload?.error ?? "Case analysis failed");
   }
 
   return (await response.json()) as CaseAnalysis;
+}
+
+export async function saveDocketForProcessing(
+  docketId: string,
+): Promise<DocketSaveResponse> {
+  const response = await fetch(
+    `/api/docket-details?docketId=${encodeURIComponent(docketId)}`,
+    {
+      method: "GET",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("Unable to save docket data for processing");
+  }
+
+  return (await response.json()) as DocketSaveResponse;
 }
